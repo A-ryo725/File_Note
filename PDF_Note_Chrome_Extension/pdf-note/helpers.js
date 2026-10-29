@@ -4,7 +4,7 @@
 // immutable, so sharing them keeps undo history small.
 export const cloneNotes = (list) => list.map((o) => (o.points ? { ...o, points: o.points.map((p) => ({ ...p })) } : { ...o }));
 
-// Two-point shapes (rect, ellipse, whiteout) are stored as their drag corners.
+// Two-point shapes (rect, ellipse) are stored as their drag corners.
 export function rectOf(o) {
   const [a, b] = o.points;
   return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) };

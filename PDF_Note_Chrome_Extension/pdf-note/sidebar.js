@@ -250,10 +250,6 @@ async function paintNotes(ctx, notes) {
       image.src = o.data;
       await image.decode();
       ctx.drawImage(image, o.x, o.y, o.w, o.h);
-    } else if (o.type === 'whiteout') {
-      const r = rectOf(o);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(r.x, r.y, r.w, r.h);
     } else if (o.type === 'rect' || o.type === 'ellipse') {
       const r = rectOf(o);
       ctx.strokeStyle = o.color;
@@ -262,6 +258,10 @@ async function paintNotes(ctx, notes) {
       ctx.beginPath();
       if (o.type === 'rect') ctx.rect(r.x, r.y, r.w, r.h);
       else ctx.ellipse(r.x + r.w / 2, r.y + r.h / 2, r.w / 2, r.h / 2, 0, 0, Math.PI * 2);
+      if (o.fill) {
+        ctx.fillStyle = o.color;
+        ctx.fill();
+      }
       ctx.stroke();
     } else {
       ctx.strokeStyle = o.color;

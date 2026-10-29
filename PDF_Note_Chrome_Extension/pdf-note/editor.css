@@ -136,6 +136,18 @@ label input {
   padding: 8px;
   color: #17263d;
 }
+label.check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+label.check[hidden] {
+  display: none;
+}
+label.check input {
+  width: auto;
+  margin: 0;
+}
 input[type='color'] {
   height: 38px;
   padding: 3px;
@@ -501,8 +513,7 @@ aside.select-mode {
 }
 .page-overlay[data-tool='rect'],
 .page-overlay[data-tool='ellipse'],
-.page-overlay[data-tool='arrow'],
-.page-overlay[data-tool='whiteout'] {
+.page-overlay[data-tool='arrow'] {
   cursor: crosshair;
 }
 .rail-actions {

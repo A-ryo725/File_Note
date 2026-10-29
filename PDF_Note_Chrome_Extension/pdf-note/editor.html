@@ -8,7 +8,7 @@
   </head>
   <body>
     <header>
-      <div class="brand"><span class="logo">P</span><strong>PDF Note</strong><span id="filename">PDFを選んで始める</span></div>
+      <div class="brand"><span class="logo">P</span><strong>PDF Note</strong><span id="filename"></span></div>
       <div class="actions">
         <button id="open">PDFを開く</button><button id="projectOpen">編集データを開く</button
         ><button id="projectSave" disabled>編集データを保存</button><button id="save" class="primary" disabled>PDFを保存</button>
@@ -19,7 +19,6 @@
         <button data-tool="select" class="active">選択・移動</button><button data-tool="text">文字</button
         ><button data-tool="line">直線</button><button data-tool="pen">手書き</button><button data-tool="highlight">マーカー</button
         ><button data-tool="rect">四角</button><button data-tool="ellipse">楕円</button><button data-tool="arrow">矢印</button
-        ><button data-tool="whiteout" title="見た目を隠すだけで、文字データはPDFに残ります">白塗り</button
         ><button id="photo">写真を追加</button><button id="undo" disabled title="Ctrl+Z">↶ 戻す</button
         ><button id="redo" disabled title="Ctrl+Y">↷ やり直す</button>
       </div>
@@ -41,34 +40,29 @@
           <div class="rail-actions">
             <button id="railRotate" disabled>↻ 右に回転</button><button id="railBlank" disabled>白紙を挿入</button>
           </div>
-          <p class="rail-hint">ドラッグで移動・Deleteで削除</p>
           <div id="pageThumbs" role="listbox" aria-label="PDFのページ一覧"></div>
         </section>
         <section id="settingsPanel">
-          <h2>書き込みの設定</h2>
           <label>色<input type="color" id="color" value="#000000" /></label
+          ><label class="check" id="fillRow" hidden>塗りつぶし<input type="checkbox" id="fill" /></label
           ><label>文字サイズ <span>pt</span><input id="fontSize" type="number" min="6" max="180" value="18" /></label
           ><label>線の太さ <span>pt</span><input id="lineWidth" type="number" min="0.5" max="50" step="0.5" value="2" /></label>
           <section id="selection">
-            <h2>選択した書き込み</h2>
-            <p id="selectionInfo">追加した文字・線・写真をクリックすると選択できます。</p>
+            <p id="selectionInfo" hidden></p>
             <div id="sizeControls" hidden>
               <label>幅 <span>pt</span><input id="objectWidth" type="number" min="1" step="1" /></label
               ><label>高さ <span>pt</span><input id="objectHeight" type="number" min="1" step="1" /></label>
             </div>
             <button id="editText" disabled>文字を編集</button><button id="delete" disabled>選択した書き込みを削除</button>
           </section>
-          <p class="tip" id="toolHint">「文字」を選び、PDFの好きな位置をクリックしてください。</p>
-          <p class="privacy">端末内で処理<br />外部へのアップロードなし</p>
+          <p class="tip" id="toolHint"></p>
         </section>
       </aside>
       <div id="workspace">
         <div id="empty">
           <div class="emptyIcon">PDF</div>
           <h1>PDFに、書き込もう。</h1>
-          <p>文字、線、写真を追加して、そのままPDFに保存。</p>
           <button id="start" class="primary">PDFを選ぶ</button>
-          <p class="muted">ここにPDFをドラッグ＆ドロップしても開けます。</p>
         </div>
         <div id="pageStack" hidden>
           <div id="pageWrap" hidden>
@@ -79,12 +73,11 @@
         </div>
       </div>
     </main>
-    <footer><span id="status" role="status">PDFを開いてください。</span><span>保存先はダウンロード時に指定できます。</span></footer>
+    <footer><span id="status" role="status"></span></footer>
     <dialog id="textDialog">
       <form method="dialog">
         <h2>文字を入力</h2>
-        <textarea id="textValue" rows="5" placeholder="日本語も入力できます" aria-label="追加する文字"></textarea>
-        <p>改行できます。保存後も文字を選択・検索できます。</p>
+        <textarea id="textValue" rows="5" aria-label="追加する文字"></textarea>
         <div><button value="cancel">キャンセル</button><button id="textConfirm" value="ok" class="primary">配置する</button></div>
       </form>
     </dialog>

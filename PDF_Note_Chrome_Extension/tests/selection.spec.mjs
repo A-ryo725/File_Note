@@ -11,6 +11,11 @@ async function makePdf(pages) {
 }
 
 async function openPdf(page, bytes) {
+  // Native file dialogs cannot be driven by tests; use the <input>/download fallbacks.
+  await page.addInitScript(() => {
+    delete window.showOpenFilePicker;
+    delete window.showSaveFilePicker;
+  });
   await page.goto('/editor.html');
   await page.locator('#fileInput').setInputFiles({ name: 'sample.pdf', mimeType: 'application/pdf', buffer: bytes });
   await expect(page.locator('#pageNumber')).toHaveText(/^1 \/ \d+$/);
@@ -42,7 +47,7 @@ test('drag selects a range; Shift+drag selects from a drawing tool without leavi
   // Range drag in the select tool picks A and B but not C.
   await page.click('[data-tool=select]');
   await drag(page, [0.05, 0.05], [0.5, 0.2]);
-  await expect(page.locator('#selectionInfo')).toContainText('2個の書き込みを選択中');
+  await expect(page.locator('#selectionInfo')).toHaveText('2個選択中');
 
   // Dragging one selected note moves the whole group by the same amount.
   const before = await xs(page);
@@ -64,7 +69,7 @@ test('drag selects a range; Shift+drag selects from a drawing tool without leavi
   await expect(page.locator('#overlay g[data-id]')).toHaveCount(1);
   await expect(page.locator('button[data-tool=pen]')).toHaveClass(/active/);
   await page.keyboard.press('ArrowRight'); // the selection can still be moved from the pen tool
-  await expect(page.locator('#selectionInfo')).toContainText('四角を選択中');
+  await expect(page.locator('#selectionInfo')).toHaveText('四角');
 });
 
 test('the thumbnail list follows the page shown in the continuous view', async ({ page }) => {
@@ -114,4 +119,29 @@ test('a click with the pen leaves a dot that is saved to the PDF', async ({ page
   // A 20pt dot covers about pi * 10^2 = 314 pixels.
   expect(result).toBeGreaterThan(250);
   expect(result).toBeLessThan(400);
+});
+
+test('Shift pressed during a rect/ellipse drag makes a square / circle', async ({ page }) => {
+  await openPdf(page, await makePdf(1));
+  const box = await page.locator('#overlay').boundingBox();
+  const at = ([x, y]) => [box.x + box.width * x, box.y + box.height * y];
+  for (const [tool, y] of [
+    ['rect', 0.1],
+    ['ellipse', 0.5],
+  ]) {
+    await page.click(`[data-tool=${tool}]`);
+    await page.mouse.move(...at([0.1, y]));
+    await page.mouse.down();
+    await page.mouse.move(...at([0.2, y + 0.02]));
+    await page.keyboard.down('Shift');
+    await page.mouse.move(...at([0.5, y + 0.05]), { steps: 4 });
+    await page.mouse.up();
+    await page.keyboard.up('Shift');
+  }
+  const rect = await page.locator('#overlay g[data-id] rect').first().evaluate((el) => [+el.getAttribute('width'), +el.getAttribute('height')]);
+  expect(rect[0]).toBeGreaterThan(20);
+  expect(rect[0]).toBeCloseTo(rect[1], 1);
+  const ellipse = await page.locator('#overlay g[data-id] ellipse').first().evaluate((el) => [+el.getAttribute('rx'), +el.getAttribute('ry')]);
+  expect(ellipse[0]).toBeGreaterThan(10);
+  expect(ellipse[0]).toBeCloseTo(ellipse[1], 1);
 });

@@ -2,6 +2,7 @@ import * as pdfjs from './vendor/pdf.min.mjs';
 import { buildPdf } from './export.js';
 import { consumePdf } from './transfer.js';
 import { PageSidebar } from './sidebar.js';
+import { pickPhoto, pickPdf, pickSaveTarget, writeTo } from './pickers.js';
 import { cloneNotes, rectOf, arrowTips, simplify, fieldKind, radioStateOf, dropdownValueOf } from './helpers.js';
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdf.worker.min.mjs', import.meta.url).href;
 const $ = (id) => document.getElementById(id);
@@ -26,7 +27,7 @@ const toolColors = {
   arrow: '#e15244',
 };
 const shareLineColor = ['line', 'pen', 'rect', 'ellipse', 'arrow'];
-const twoPointShapes = ['line', 'highlight', 'rect', 'ellipse', 'arrow', 'whiteout'];
+const twoPointShapes = ['line', 'highlight', 'rect', 'ellipse', 'arrow'];
 const noteLabels = {
   text: '文字',
   image: '写真',
@@ -36,7 +37,6 @@ const noteLabels = {
   rect: '四角',
   ellipse: '楕円',
   arrow: '矢印',
-  whiteout: '白塗り',
 };
 let clipboardNotes = [],
   group = [],
@@ -171,17 +171,16 @@ function setTool(value) {
   document.querySelectorAll('button[data-tool]').forEach((b) => b.classList.toggle('active', b.dataset.tool === value));
   for (const view of views.values()) view.overlay.dataset.tool = value;
   if (toolColors[value]) $('color').value = toolColors[value];
+  $('fillRow').hidden = value !== 'rect' && value !== 'ellipse';
   $('toolHint').textContent = {
-    select:
-      'PDF内の文字入力欄をクリックすると直接入力できます。追加した書き込みはドラッグして移動できます。何もない所からドラッグすると範囲選択、Shift+クリックで選択に追加できます。',
-    text: 'PDFをクリックして文字を配置します。埋め込み入力欄はそのままクリックして入力できます。',
-    line: '始点から終点までドラッグします。ドラッグ中にShiftキーで水平・垂直にできます。Shift+ドラッグで書き込みを範囲選択できます。',
-    pen: 'PDF上をドラッグして手書きできます。クリックすると点を打てます。Shift+ドラッグで書き込みを範囲選択できます。',
-    highlight: 'ドラッグした位置に半透明のマーカーを引きます。Shift+ドラッグで書き込みを範囲選択できます。',
-    rect: 'ドラッグして四角を描きます。',
-    ellipse: 'ドラッグして楕円を描きます。',
-    arrow: '始点から終点までドラッグして矢印を描きます。ドラッグ中にShiftキーで水平・垂直にできます。Shift+ドラッグで範囲選択できます。',
-    whiteout: 'ドラッグした範囲を白で隠します。見た目を隠すだけで、元の文字データはPDFに残ります。機密情報の削除には使えません。',
+    select: 'ドラッグで範囲選択。Shift+クリックで追加選択',
+    text: 'クリックで文字を配置',
+    line: 'ドラッグ中にShiftキーで水平・垂直。Shift+ドラッグで書き込みを範囲選択',
+    pen: 'ドラッグで手書き。クリックで点。Shift+ドラッグで書き込みを範囲選択',
+    highlight: 'ドラッグ中にShiftキーで水平・垂直。Shift+ドラッグで書き込みを範囲選択',
+    rect: 'ドラッグ中にShiftキーで正方形。Shift+ドラッグで書き込みを範囲選択',
+    ellipse: 'ドラッグ中にShiftキーで正円。Shift+ドラッグで書き込みを範囲選択',
+    arrow: 'ドラッグ中にShiftキーで水平・垂直。Shift+ドラッグで書き込みを範囲選択',
   }[value];
   draw();
   $('sidebar').classList.toggle('select-mode', value === 'select');
@@ -236,17 +235,21 @@ function drawPage(view) {
       o.text.split('\n').forEach((line, i) => txt.append(svg('tspan', { x: o.x, y: o.y + o.size + i * o.size * 1.35 }, line)));
       g.append(txt);
     } else if (o.type === 'image') g.append(svg('image', { x: o.x, y: o.y, width: o.w, height: o.h, href: o.data }));
-    else if (o.type === 'rect' || o.type === 'ellipse' || o.type === 'whiteout') {
+    else if (o.type === 'rect' || o.type === 'ellipse') {
       const r = rectOf(o);
       const shape = (attrs) =>
         o.type === 'ellipse'
           ? svg('ellipse', { cx: r.x + r.w / 2, cy: r.y + r.h / 2, rx: r.w / 2, ry: r.h / 2, ...attrs })
           : svg('rect', { x: r.x, y: r.y, width: r.w, height: r.h, ...attrs });
-      if (o.type === 'whiteout') g.append(shape({ fill: '#ffffff' }));
-      else {
-        g.append(shape({ fill: 'none', stroke: o.color, 'stroke-width': o.width, 'stroke-linejoin': 'round' }));
-        g.append(shape({ fill: 'none', stroke: 'transparent', 'stroke-width': Math.max(o.width, 12 / scale), 'pointer-events': 'stroke' }));
-      }
+      g.append(shape({ fill: o.fill ? o.color : 'none', stroke: o.color, 'stroke-width': o.width, 'stroke-linejoin': 'round' }));
+      g.append(
+        shape({
+          fill: 'transparent',
+          stroke: 'transparent',
+          'stroke-width': Math.max(o.width, 12 / scale),
+          'pointer-events': o.fill ? 'all' : 'stroke',
+        }),
+      );
     } else {
       const points = o.points.map((p) => `${p.x},${p.y}`).join(' ');
       g.append(
@@ -346,22 +349,21 @@ function syncSelection() {
   const chosen = selectedNotes(),
     o = chosen.length === 1 ? chosen[0] : null;
   $('settingsPanel').hidden = tool === 'select';
+  $('fillRow').hidden = tool !== 'rect' && tool !== 'ellipse';
   $('delete').disabled = !chosen.length || busy;
   $('editText').disabled = !o || o.type !== 'text' || busy;
-  $('selectionInfo').textContent =
-    chosen.length > 1
-      ? `${chosen.length}個の書き込みを選択中。ドラッグまたは矢印キーで移動、Deleteで削除、Ctrl+Cでコピーできます。`
-      : o
-        ? noteLabels[o.type] + 'を選択中。ドラッグまたは矢印キーで移動、Ctrl+Cでコピーできます。'
-        : '追加した文字・線・写真をクリックすると選択できます。ドラッグで範囲選択もできます。';
+  const info = $('selectionInfo');
+  info.hidden = !chosen.length;
+  info.textContent = chosen.length > 1 ? `${chosen.length}個選択中` : o ? noteLabels[o.type] : '';
   $('sizeControls').hidden = !o || o.type !== 'image';
   if (o?.type === 'image') {
     $('objectWidth').value = Math.round(o.w);
     $('objectHeight').value = Math.round(o.h);
   }
-  if (o?.color && o.type !== 'whiteout') $('color').value = o.color;
+  if (o?.color) $('color').value = o.color;
   if (o?.type === 'text') $('fontSize').value = o.size;
-  if (o?.width && o.type !== 'whiteout') $('lineWidth').value = o.width;
+  if (o?.width) $('lineWidth').value = o.width;
+  if (o?.type === 'rect' || o?.type === 'ellipse') $('fill').checked = !!o.fill;
 }
 function point(event) {
   const r = overlay.getBoundingClientRect(),
@@ -453,10 +455,11 @@ function bindOverlay(surface, index) {
       const o = {
         id: crypto.randomUUID(),
         type: tool,
-        color: tool === 'whiteout' ? '#ffffff' : $('color').value,
-        width: tool === 'whiteout' ? 1 : tool === 'highlight' ? Math.max(12, num('lineWidth', 0.5, 50)) : num('lineWidth', 0.5, 50),
+        color: $('color').value,
+        width: tool === 'highlight' ? Math.max(12, num('lineWidth', 0.5, 50)) : num('lineWidth', 0.5, 50),
         points: [p, { ...p }],
       };
+      if (tool === 'rect' || tool === 'ellipse') o.fill = $('fill').checked;
       objects().push(o);
       gesture = { kind: 'draw', id: o.id, start: p, moved: false, pointer: event.pointerId };
       draw();
@@ -505,9 +508,22 @@ function bindOverlay(surface, index) {
       const last = o.points.at(-1);
       if (Math.hypot(p.x - last.x, p.y - last.y) > 0.4) o.points.push(p);
     } else {
-      if (event.shiftKey && (o.type === 'line' || o.type === 'arrow')) {
+      if (event.shiftKey && (o.type === 'line' || o.type === 'arrow' || o.type === 'highlight')) {
         if (Math.abs(dx) > Math.abs(dy)) p.y = gesture.start.y;
         else p.x = gesture.start.x;
+      }
+      if (event.shiftKey && (o.type === 'rect' || o.type === 'ellipse')) {
+        // Square / true circle, kept inside the page.
+        const d = dimensions[pageIndex],
+          sx = dx < 0 ? -1 : 1,
+          sy = dy < 0 ? -1 : 1;
+        const size = Math.min(
+          Math.max(Math.abs(dx), Math.abs(dy)),
+          sx < 0 ? gesture.start.x : d.width - gesture.start.x,
+          sy < 0 ? gesture.start.y : d.height - gesture.start.y,
+        );
+        p.x = gesture.start.x + sx * size;
+        p.y = gesture.start.y + sy * size;
       }
       o.points[1] = p;
     }
@@ -1015,6 +1031,8 @@ async function loadBundle(files, name, pages = null, restored = null, restoredFo
     sources = prepared;
     pageOrder = clone(order);
     pdf = sources[0].preview;
+    sourceHandle = pendingHandle;
+    pendingHandle = null;
     filename = name.replace(/[^\p{L}\p{N}_. ()-]/gu, '_') || 'document.pdf';
     annotations = Array.from({ length: pageOrder.length }, (_, i) => clone(restored?.[i] || []));
     dimensions = [];
@@ -1068,10 +1086,19 @@ async function loadFile(file) {
     status(e.message, true);
   }
 }
-for (const id of ['open', 'start'])
-  $(id).onclick = () => {
-    if (!busy) $('fileInput').click();
-  };
+let sourceHandle = null,
+  pendingHandle = null;
+async function openPdf() {
+  if (busy) return;
+  const picked = await pickPdf();
+  if (picked === undefined) $('fileInput').click();
+  else if (picked) {
+    pendingHandle = picked.handle;
+    await loadFile(picked.file);
+    pendingHandle = null;
+  }
+}
+for (const id of ['open', 'start']) $(id).onclick = openPdf;
 $('fileInput').onchange = async () => {
   const f = $('fileInput').files[0];
   $('fileInput').value = '';
@@ -1270,7 +1297,7 @@ $('editText').onclick = () => {
   const o = objects().find((o) => o.id === selected);
   if (o?.type === 'text' && !busy) showText(null, o);
 };
-for (const id of ['color', 'fontSize', 'lineWidth', 'objectWidth', 'objectHeight'])
+for (const id of ['color', 'fill', 'fontSize', 'lineWidth', 'objectWidth', 'objectHeight'])
   $(id).addEventListener('change', () => {
     if (busy) return;
     const o = objects().find((o) => o.id === selected);
@@ -1280,8 +1307,8 @@ for (const id of ['color', 'fontSize', 'lineWidth', 'objectWidth', 'objectHeight
       else if (toolColors[type]) toolColors[type] = $('color').value;
     }
     if (!o) return;
-    if (o.type === 'whiteout' && (id === 'color' || id === 'lineWidth')) return;
     if (id === 'color' && o.color) o.color = $('color').value;
+    else if (id === 'fill' && (o.type === 'rect' || o.type === 'ellipse')) o.fill = $('fill').checked;
     else if (id === 'fontSize' && o.type === 'text') o.size = num(id, 6, 180);
     else if (id === 'lineWidth' && o.width) o.width = num(id, 0.5, 50);
     else if ((id === 'objectWidth' || id === 'objectHeight') && o.type === 'image') {
@@ -1296,8 +1323,11 @@ for (const id of ['color', 'fontSize', 'lineWidth', 'objectWidth', 'objectHeight
     record();
     draw();
   });
-$('photo').onclick = () => {
-  if (!busy && pdf) $('imageInput').click();
+$('photo').onclick = async () => {
+  if (busy || !pdf) return;
+  const file = await pickPhoto();
+  if (file === undefined) $('imageInput').click();
+  else if (file) await addImages([file]);
 };
 function hasAlpha(canvas) {
   const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
@@ -1428,6 +1458,10 @@ function download(bytes, name, type) {
 }
 $('save').onclick = async () => {
   if (!pdf || busy) return;
+  const saveName = filename.replace(/\.pdf$/i, '') + '_edited.pdf';
+  // The picker needs the click's user activation, so it opens before the slow PDF build.
+  const target = await pickSaveTarget(saveName, sourceHandle);
+  if (target === null) return;
   setBusy(true, 'PDFを作成しています…');
   try {
     if (annotations.some((list) => list.some((o) => o.type === 'text')) || Object.keys(changedForms()).length)
@@ -1446,9 +1480,10 @@ $('save').onclick = async () => {
       formValues: changedForms(),
       fontBytes: fontPromise ? await fontPromise : null,
     });
-    download(bytes, filename.replace(/\.pdf$/i, '') + '_edited.pdf', 'application/pdf');
+    if (target) await writeTo(target, bytes);
+    else download(bytes, saveName, 'application/pdf');
     dirty = false;
-    status('編集済みPDFをダウンロードしました。元のファイルとは別名で保存します。');
+    status(target ? '編集済みPDFを保存しました。' : '編集済みPDFをダウンロードしました。元のファイルとは別名で保存します。');
   } catch (e) {
     status('保存できませんでした：' + e.message, true);
   } finally {

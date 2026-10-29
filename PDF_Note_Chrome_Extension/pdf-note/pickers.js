@@ -1,0 +1,50 @@
+// File pickers that start in a useful folder (File System Access API).
+// undefined = unavailable, so the caller falls back to <input type="file"> / a download; null = cancelled.
+const cancelled = (e) => e?.name === 'AbortError';
+
+async function show(name, options) {
+  if (typeof window[name] !== 'function') return undefined;
+  try {
+    return await window[name](options);
+  } catch (e) {
+    if (cancelled(e)) return null;
+    if (options.startIn && e?.name === 'TypeError') return show(name, { ...options, startIn: undefined });
+    return undefined;
+  }
+}
+
+// Opens in the Pictures folder the first time, then in the folder used last.
+export async function pickPhoto() {
+  const [handle] =
+    (await show('showOpenFilePicker', {
+      id: 'pdf-note-photo',
+      startIn: 'pictures',
+      types: [{ description: '写真', accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] } }],
+    })) ?? [];
+  return handle ? handle.getFile() : handle;
+}
+
+export async function pickPdf() {
+  const picked = await show('showOpenFilePicker', {
+    id: 'pdf-note-pdf',
+    types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }],
+  });
+  if (!picked) return picked;
+  return { handle: picked[0], file: await picked[0].getFile() };
+}
+
+// Starts in the folder of the PDF that was opened, when its handle is known.
+export function pickSaveTarget(suggestedName, sourceHandle) {
+  return show('showSaveFilePicker', {
+    id: 'pdf-note-save',
+    suggestedName,
+    startIn: sourceHandle || undefined,
+    types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }],
+  });
+}
+
+export async function writeTo(handle, bytes) {
+  const writable = await handle.createWritable();
+  await writable.write(bytes);
+  await writable.close();
+}

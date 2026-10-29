@@ -25,6 +25,11 @@ async function makePdf({ withForm = true } = {}) {
 }
 
 async function openPdf(page, bytes, name = 'sample.pdf') {
+  // Native file dialogs cannot be driven by tests; use the <input>/download fallbacks.
+  await page.addInitScript(() => {
+    delete window.showOpenFilePicker;
+    delete window.showSaveFilePicker;
+  });
   await page.goto('/editor.html');
   await page.locator('#fileInput').setInputFiles({ name, mimeType: 'application/pdf', buffer: bytes });
   await expect(page.locator('#pageNumber')).toHaveText(/^1 \/ \d+$/);
@@ -65,17 +70,19 @@ test('annotations, forms, page tools and PDF export', async ({ page }) => {
     rect: [0.1, 0.65],
     ellipse: [0.5, 0.65],
     arrow: [0.1, 0.8],
-    whiteout: [0.5, 0.8],
     line: [0.1, 0.9],
     highlight: [0.5, 0.9],
   };
   for (const [tool, [x, y]] of Object.entries(shapes)) {
     await page.click(`[data-tool=${tool}]`);
+    await expect(page.locator('#fillRow')).toBeVisible({ visible: tool === 'rect' || tool === 'ellipse' });
+    if (tool === 'ellipse') await page.check('#fill');
     await drag(page, [x, y], [x + 0.25, y + 0.07]);
   }
+  await expect(page.locator('#overlay ellipse[fill="#e15244"]')).toHaveCount(1); // only the filled one
   await page.click('[data-tool=pen]');
   await drag(page, [0.1, 0.96], [0.7, 0.97], 60);
-  await expect(page.locator('#overlay g[data-id]')).toHaveCount(8);
+  await expect(page.locator('#overlay g[data-id]')).toHaveCount(7);
 
   // Photo: stays a JPEG when the source is a JPEG.
   const jpeg = await page.evaluate(() => {

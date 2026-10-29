@@ -43,6 +43,9 @@ button {
 small {
   color: #64748b;
 }
+#message:empty {
+  display: none;
+}
 #message {
   font-size: 12px;
   color: #526078;

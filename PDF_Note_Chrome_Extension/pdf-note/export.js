@@ -56,7 +56,15 @@ export async function buildPdf({ sources, pages, annotations, dimensions, fontBy
       } else if (o.type === 'rect') {
         const r = rectOf(o);
         roundJoins(() =>
-          p.drawRectangle({ x: r.x, y: height - r.y - r.h, width: r.w, height: r.h, borderColor: color(o.color), borderWidth: o.width }),
+          p.drawRectangle({
+            x: r.x,
+            y: height - r.y - r.h,
+            width: r.w,
+            height: r.h,
+            borderColor: color(o.color),
+            borderWidth: o.width,
+            ...(o.fill && { color: color(o.color) }),
+          }),
         );
       } else if (o.type === 'ellipse') {
         const r = rectOf(o);
@@ -68,10 +76,8 @@ export async function buildPdf({ sources, pages, annotations, dimensions, fontBy
             yScale: r.h / 2,
             borderColor: color(o.color),
             borderWidth: o.width,
+            ...(o.fill && { color: color(o.color) }),
           });
-      } else if (o.type === 'whiteout') {
-        const r = rectOf(o);
-        p.drawRectangle({ x: r.x, y: height - r.y - r.h, width: r.w, height: r.h, color: rgb(1, 1, 1), borderWidth: 0 });
       } else if (o.type === 'pen') {
         const pts = simplify(o.points, 0.15);
         if (pts.every((pt) => pt.x === pts[0].x && pt.y === pts[0].y)) {
