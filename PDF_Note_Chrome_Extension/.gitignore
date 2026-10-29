@@ -1,0 +1,32 @@
+# 依存パッケージ（npm install で再生成できる）
+node_modules/
+
+# テストの出力
+test-results/
+playwright-report/
+blob-report/
+
+# 認証情報・環境変数（CLAUDE.md: APIキー・パスワードは扱わない）
+.env
+.env.*
+*.pem
+*.key
+
+# 編集中のPDF・編集データ（顧客情報が含まれる可能性がある）
+*.pdf
+*.pdfnote
+
+# ビルド成果物・配布用ZIP
+*.zip
+dist/
+
+# OS・エディターの一時ファイル
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+.vscode/
+.idea/
+
+# Claude Code のローカル設定
+.claude/settings.local.json

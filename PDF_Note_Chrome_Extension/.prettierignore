@@ -1,0 +1,4 @@
+node_modules
+pdf-note/vendor
+test-results
+playwright-report
