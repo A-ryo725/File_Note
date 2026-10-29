@@ -15,13 +15,13 @@ async function show(name, options) {
 
 // Opens in the Pictures folder the first time, then in the folder used last.
 export async function pickPhoto() {
-  const [handle] =
-    (await show('showOpenFilePicker', {
-      id: 'pdf-note-photo',
-      startIn: 'pictures',
-      types: [{ description: '写真', accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] } }],
-    })) ?? [];
-  return handle ? handle.getFile() : handle;
+  const picked = await show('showOpenFilePicker', {
+    id: 'pdf-note-photo',
+    startIn: 'pictures',
+    types: [{ description: '写真', accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] } }],
+  });
+  // Keep null (cancelled) apart from undefined (unavailable): only the latter may open the fallback.
+  return picked ? picked[0].getFile() : picked;
 }
 
 export async function pickPdf() {
