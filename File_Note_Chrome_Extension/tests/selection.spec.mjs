@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const PDFLib = require('../pdf-note/vendor/pdf-lib.min.js');
+const PDFLib = require('../file-note/vendor/pdf-lib.min.js');
 
 async function makePdf(pages) {
   const doc = await PDFLib.PDFDocument.create();

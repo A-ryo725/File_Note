@@ -3,6 +3,7 @@ import { buildPdf } from './export.js';
 import { consumePdf } from './transfer.js';
 import { PageSidebar } from './sidebar.js';
 import { pickPhoto, pickPdf, pickSaveTarget, writeTo } from './pickers.js';
+import { createOfficeView, officeKind, OFFICE_MESSAGES } from './office.js';
 import { cloneNotes, rectOf, arrowTips, simplify, fieldKind, radioStateOf, dropdownValueOf } from './helpers.js';
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdf.worker.min.mjs', import.meta.url).href;
 const $ = (id) => document.getElementById(id);
@@ -119,6 +120,15 @@ function setBusy(value, message) {
   syncSelection();
 }
 function updatePaging() {
+  if (office.active) {
+    // A Word / PowerPoint file is shown: the same controls drive the read-only view.
+    $('pageNumber').textContent = office.pageLabel;
+    $('zoomLabel').textContent = `${Math.round(office.scale * 100)}%`;
+    $('prev').disabled = busy || !office.canPrev;
+    $('next').disabled = busy || !office.canNext;
+    for (const id of ['zoomIn', 'zoomOut', 'fit']) $(id).disabled = busy;
+    return;
+  }
   $('pageNumber').textContent = pdf ? `${pageIndex + 1} / ${pageOrder.length}` : '0 / 0';
   $('zoomLabel').textContent = `${Math.round(scale * 100)}%`;
   $('prev').disabled = busy || !pdf || pageIndex === 0;
@@ -1048,11 +1058,12 @@ async function loadBundle(files, name, pages = null, restored = null, restoredFo
     );
     formLayer.replaceChildren();
     committed = true;
+    office.close();
     history = [snapshot()];
     historyIndex = 0;
     setTool('select');
     $('filename').textContent = filename;
-    document.title = `${filename} — PDF Note`;
+    document.title = `${filename} — File Note`;
     await document.fonts.load('18px NoteJP');
     const page = await getPageAt(0);
     const width = viewportOf(page, 0, 1).width;
@@ -1062,7 +1073,7 @@ async function loadBundle(files, name, pages = null, restored = null, restoredFo
     status(
       /encrypt|password/i.test(e.message)
         ? 'パスワード付きPDFには対応していません。保護のないPDFを選んでください。'
-        : 'PDFを開けませんでした。ダウンロードしたPDFを「PDFを開く」で選んでください。 ' + e.message,
+        : 'PDFを開けませんでした。ダウンロードしたPDFを「ファイルを開く」で選んでください。 ' + e.message,
       true,
     );
   } finally {
@@ -1070,8 +1081,69 @@ async function loadBundle(files, name, pages = null, restored = null, restoredFo
     setBusy(false);
   }
 }
+// Resets the editor to the state before any PDF was opened.
+async function closePdf() {
+  viewGeneration++;
+  pageObserver?.disconnect();
+  for (const view of views.values()) {
+    view.task?.cancel();
+    view.canvas.width = 0;
+    view.canvas.height = 0;
+  }
+  views.clear();
+  $('pageStack').replaceChildren();
+  $('pageStack').hidden = true;
+  viewSignature = '';
+  pageSidebar.reset();
+  documentRevision++;
+  for (const source of sources) await source.preview.destroy();
+  sources = [];
+  pageOrder = [];
+  pdf = null;
+  sourceHandle = null;
+  annotations = [];
+  dimensions = [];
+  pageIndex = 0;
+  selected = null;
+  group = [];
+  scale = 1;
+  dirty = false;
+  formValues = {};
+  initialFormValues = {};
+  history = [];
+  historyIndex = -1;
+  setTool('select');
+}
+// Word / PowerPoint files are shown read-only in place of the PDF.
+async function openOffice(file) {
+  if (!file || busy) return;
+  if (officeKind(file.name) === 'legacy') {
+    status(OFFICE_MESSAGES.legacy, true);
+    return;
+  }
+  if (file.size > 200 * 1024 * 1024) {
+    status('200MB以下のファイルを選んでください。', true);
+    return;
+  }
+  if (dirty && !confirm('保存していない編集があります。別のファイルを開きますか？')) return;
+  setBusy(true, 'ファイルを読み込んでいます…');
+  try {
+    const prepared = await office.prepare(file);
+    await closePdf();
+    office.show(prepared);
+    $('filename').textContent = file.name;
+    document.title = `${file.name} — File Note`;
+    status('閲覧のみ（Word・PowerPointは編集できません）');
+  } catch (e) {
+    status(e.message, true);
+  } finally {
+    pendingHandle = null;
+    setBusy(false);
+  }
+}
 async function loadFile(file) {
   if (!file || busy) return;
+  if (officeKind(file.name)) return openOffice(file);
   if (file.size > 200 * 1024 * 1024) {
     status('200MB以下のPDFを選んでください。', true);
     return;
@@ -1226,7 +1298,9 @@ async function dropFiles(files) {
   if (!files.length) return;
   const pdfs = files.filter((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
   const images = files.filter((f) => /^image\/(png|jpeg|webp)$/.test(f.type));
-  if (pdfs.length > 1) {
+  const officeFile = files.find((f) => officeKind(f.name));
+  if (!pdfs.length && officeFile) await openOffice(officeFile);
+  else if (pdfs.length > 1) {
     if (pdfs.reduce((sum, f) => sum + f.size, 0) > 200 * 1024 * 1024) {
       status('PDFの合計サイズは200MB以下にしてください。', true);
       return;
@@ -1242,7 +1316,7 @@ async function dropFiles(files) {
   else if (images.length) {
     if (pdf) await addImages(images);
     else status('先にPDFを開いてから、画像をドロップしてください。', true);
-  } else status('PDFまたは画像（PNG・JPEG・WebP）をドロップしてください。', true);
+  } else status('PDF・Word・PowerPoint、または画像（PNG・JPEG・WebP）をドロップしてください。', true);
 }
 $('workspace').addEventListener('dragover', (e) => {
   e.preventDefault();
@@ -1261,28 +1335,39 @@ document.querySelectorAll('button[data-tool]').forEach(
     }),
 );
 $('prev').onclick = async () => {
-  if (!busy && pageIndex > 0) {
+  if (office.active) {
+    if (!busy) office.prev();
+  } else if (!busy && pageIndex > 0) {
     pageIndex--;
     selected = null;
     await render();
   }
 };
 $('next').onclick = async () => {
-  if (!busy && pdf && pageIndex < pageOrder.length - 1) {
+  if (office.active) {
+    if (!busy) office.next();
+  } else if (!busy && pdf && pageIndex < pageOrder.length - 1) {
     pageIndex++;
     selected = null;
     await render();
   }
 };
 async function zoom(value) {
-  if (!busy && pdf) {
+  if (office.active) {
+    if (!busy) office.zoom(value);
+  } else if (!busy && pdf) {
     scale = Math.min(3, Math.max(0.25, value));
     await render();
   }
 }
-$('zoomIn').onclick = () => zoom(scale + 0.25);
-$('zoomOut').onclick = () => zoom(scale - 0.25);
-$('fit').onclick = () => zoom(($('workspace').clientWidth - 52) / dimensions[pageIndex].width);
+const currentScale = () => (office.active ? office.scale : scale);
+$('zoomIn').onclick = () => zoom(currentScale() + 0.25);
+$('zoomOut').onclick = () => zoom(currentScale() - 0.25);
+$('fit').onclick = () => {
+  if (office.active) {
+    if (!busy) office.fit();
+  } else zoom(($('workspace').clientWidth - 52) / dimensions[pageIndex].width);
+};
 $('undo').onclick = () => restore(-1);
 $('redo').onclick = () => restore(1);
 $('delete').onclick = () => {
@@ -1514,7 +1599,7 @@ $('projectSave').onclick = () => {
       }),
   );
   const payload = {
-    format: 'pdf-note',
+    format: 'file-note',
     version: 2,
     filename,
     sources: used.map((i) => ({ filename: sources[i].name, pdf: toBase64(sources[i].bytes) })),
@@ -1522,13 +1607,13 @@ $('projectSave').onclick = () => {
     annotations,
     formValues: values,
   };
-  download(JSON.stringify(payload), filename.replace(/\.pdf$/i, '') + '.pdfnote', 'application/json');
+  download(JSON.stringify(payload), filename.replace(/\.pdf$/i, '') + '.filenote', 'application/json');
   dirty = false;
   status('編集データを保存しました。文字や写真の配置を、後から再編集できます。');
 };
 function validateProject(p) {
-  if (p?.format !== 'pdf-note' || ![1, 2].includes(p.version) || typeof p.filename !== 'string' || !Array.isArray(p.annotations))
-    throw new Error('PDF Noteの編集データではありません。');
+  if (p?.format !== 'file-note' || ![1, 2].includes(p.version) || typeof p.filename !== 'string' || !Array.isArray(p.annotations))
+    throw new Error('File Noteの編集データではありません。');
   if (p.version === 1 && typeof p.pdf !== 'string') throw new Error('PDFデータが不正です。');
   if (p.version === 2) {
     if (
@@ -1627,6 +1712,10 @@ $('projectInput').onchange = async () => {
 };
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('input,textarea,select') || $('textDialog').open || busy) return;
+  if (office.active) {
+    office.handleKey(e);
+    return;
+  }
   if (e.ctrlKey || e.metaKey) {
     if (e.key.toLowerCase() === 'z') {
       e.preventDefault();
@@ -1667,6 +1756,12 @@ window.addEventListener('beforeunload', (e) => {
     e.returnValue = '';
   }
 });
+const office = createOfficeView({
+  view: $('officeView'),
+  thumbs: $('officeThumbs'),
+  workspace: $('workspace'),
+  onChange: () => updatePaging(),
+});
 const pageSidebar = new PageSidebar({
   list: $('pageThumbs'),
   viewport: viewportOf,
@@ -1705,15 +1800,15 @@ setBusy(false);
 const transfer = new URL(location.href).searchParams.get('transfer');
 if (transfer) {
   try {
-    setBusy(true, '選択したPDFを開いています…');
+    setBusy(true, '選択したファイルを開いています…');
     const item = await consumePdf(transfer);
-    if (!item) throw new Error('選択したPDFが見つかりません。「PDFを開く」から選んでください。');
-    const bytes = new Uint8Array(await item.file.arrayBuffer());
+    if (!item) throw new Error('選択したファイルが見つかりません。「ファイルを開く」から選んでください。');
     setBusy(false);
-    await loadPdf(bytes, item.filename);
+    if (officeKind(item.filename)) await openOffice(new File([item.file], item.filename));
+    else await loadPdf(new Uint8Array(await item.file.arrayBuffer()), item.filename);
   } catch (e) {
     setBusy(false);
-    status('PDFを開けませんでした：' + e.message, true);
+    status('ファイルを開けませんでした：' + e.message, true);
   }
 }
 const source = new URL(location.href).searchParams.get('source');
@@ -1738,6 +1833,6 @@ if (source && !transfer) {
     await loadPdf(bytes, name);
   } catch (e) {
     setBusy(false);
-    status('自動で読み込めませんでした。「PDFを開く」で、ダウンロードしたPDFを選んでください。 ' + e.message, true);
+    status('自動で読み込めませんでした。「ファイルを開く」で、ダウンロードしたPDFを選んでください。 ' + e.message, true);
   }
 }

@@ -1,4 +1,4 @@
 node_modules
-pdf-note/vendor
+file-note/vendor
 test-results
 playwright-report

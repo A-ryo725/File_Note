@@ -1,12 +1,12 @@
 const openDatabase = () =>
   new Promise((resolve, reject) => {
-    const request = indexedDB.open('pdf-note-file-transfer', 1);
+    const request = indexedDB.open('file-note-file-transfer', 1);
     request.onupgradeneeded = () => request.result.createObjectStore('files', { keyPath: 'id' });
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 export async function queuePdf(file) {
-  if (file.size > 200 * 1024 * 1024) throw new Error('200MB以下のPDFを選んでください。');
+  if (file.size > 200 * 1024 * 1024) throw new Error('200MB以下のファイルを選んでください。');
   const db = await openDatabase(),
     id = crypto.randomUUID();
   try {

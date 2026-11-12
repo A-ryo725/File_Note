@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+    <title>File Note</title>
+  </head>
+  <body>
+    <h1>File Note</h1>
+    <button id="current">このPDFを編集</button><button id="open" class="secondary">パソコン内のファイルを選ぶ</button>
+    <p id="message" role="status"></p>
+    <input id="localPdf" type="file" accept="application/pdf,.pdf,.docx,.pptx" hidden />
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

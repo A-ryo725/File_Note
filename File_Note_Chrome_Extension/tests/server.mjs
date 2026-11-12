@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'pdf-note');
+const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'file-note');
 const types = {
   '.html': 'text/html',
   '.js': 'text/javascript',

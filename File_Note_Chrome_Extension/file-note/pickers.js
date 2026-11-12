@@ -16,7 +16,7 @@ async function show(name, options) {
 // Opens in the Pictures folder the first time, then in the folder used last.
 export async function pickPhoto() {
   const picked = await show('showOpenFilePicker', {
-    id: 'pdf-note-photo',
+    id: 'file-note-photo',
     startIn: 'pictures',
     types: [{ description: '写真', accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] } }],
   });
@@ -26,8 +26,17 @@ export async function pickPhoto() {
 
 export async function pickPdf() {
   const picked = await show('showOpenFilePicker', {
-    id: 'pdf-note-pdf',
-    types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }],
+    id: 'file-note-open',
+    types: [
+      {
+        description: 'PDF・Word・PowerPoint',
+        accept: {
+          'application/pdf': ['.pdf'],
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+          'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+        },
+      },
+    ],
   });
   if (!picked) return picked;
   return { handle: picked[0], file: await picked[0].getFile() };
@@ -36,7 +45,7 @@ export async function pickPdf() {
 // Starts in the folder of the PDF that was opened, when its handle is known.
 export function pickSaveTarget(suggestedName, sourceHandle) {
   return show('showSaveFilePicker', {
-    id: 'pdf-note-save',
+    id: 'file-note-save',
     suggestedName,
     startIn: sourceHandle || undefined,
     types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }],

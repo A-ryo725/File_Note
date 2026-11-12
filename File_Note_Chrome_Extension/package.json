@@ -1,11 +1,11 @@
 {
-  "name": "pdf-note-dev",
+  "name": "file-note-dev",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "playwright test",
-    "format": "prettier --write \"pdf-note/*.{js,css,html}\"",
-    "lint": "eslint pdf-note/*.js"
+    "format": "prettier --write \"file-note/*.{js,css,html}\"",
+    "lint": "eslint file-note/*.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

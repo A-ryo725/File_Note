@@ -2,10 +2,10 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
-  { ignores: ['pdf-note/vendor/**', 'node_modules/**', 'test-results/**'] },
+  { ignores: ['file-note/vendor/**', 'node_modules/**', 'test-results/**'] },
   js.configs.recommended,
   {
-    files: ['pdf-note/*.js'],
+    files: ['file-note/*.js'],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'module',

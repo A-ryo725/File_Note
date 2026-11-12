@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 
 const require = createRequire(import.meta.url);
-const PDFLib = require('../pdf-note/vendor/pdf-lib.min.js');
+const PDFLib = require('../file-note/vendor/pdf-lib.min.js');
 
 // A 2-page PDF: page 1 has a text field, checkbox, radio group and dropdown.
 async function makePdf({ withForm = true } = {}) {
@@ -178,6 +178,8 @@ test('project file keeps notes and simplifies pen strokes', async ({ page }) => 
   await page.click('[data-tool=rect]');
   await drag(page, [0.2, 0.2], [0.5, 0.3]);
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#projectSave')]);
+  expect(download.suggestedFilename()).toBe('sample.filenote');
+  await expect(page.locator('#projectInput')).toHaveAttribute('accept', /\.filenote/);
   const text = await readFile(await download.path(), 'utf8');
   const project = JSON.parse(text);
   const pen = project.annotations[0].find((o) => o.type === 'pen');
@@ -185,7 +187,9 @@ test('project file keeps notes and simplifies pen strokes', async ({ page }) => 
   expect(project.annotations[0].some((o) => o.type === 'rect')).toBe(true);
 
   await page.reload();
-  await page.locator('#projectInput').setInputFiles({ name: 'sample.pdfnote', mimeType: 'application/json', buffer: Buffer.from(text) });
+  expect(project.format).toBe('file-note');
+  await expect(page.locator('#projectInput')).not.toHaveAttribute('accept', /pdfnote/);
+  await page.locator('#projectInput').setInputFiles({ name: 'sample.filenote', mimeType: 'application/json', buffer: Buffer.from(text) });
   await expect(page.locator('#overlay g[data-id]')).toHaveCount(2);
 });
 

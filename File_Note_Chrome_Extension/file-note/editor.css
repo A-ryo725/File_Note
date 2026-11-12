@@ -546,3 +546,92 @@ aside.select-mode {
 .form-layer .pdf-check-field[type='radio']:checked {
   background-image: radial-gradient(circle, #111 0 35%, transparent 40%);
 }
+
+/* Read-only view for Word / PowerPoint files (office.js). */
+.office-only,
+body[data-office] .pdf-only {
+  display: none;
+}
+body[data-office] .office-only {
+  display: inline;
+}
+body[data-office] nav .tools,
+body[data-office] .viewChoice {
+  display: none;
+}
+body[data-office] nav {
+  justify-content: flex-end;
+}
+body[data-office] #empty,
+body[data-office] #pageThumbs,
+body[data-office] #settingsPanel,
+body[data-office] #railAppend,
+body[data-office] .rail-actions,
+body[data-office='docx'] #sidebar,
+body:not([data-office]) #officeThumbs {
+  display: none;
+}
+body[data-office] .rail-header {
+  min-height: 46px;
+}
+#officeThumbs {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 12px 24px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+.office-thumb {
+  position: relative;
+  pointer-events: none;
+}
+.office-thumb > * {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+  transform-origin: 0 0;
+}
+#officeView {
+  min-width: 100%;
+  width: max-content;
+  flex: none;
+}
+#officeView[hidden] {
+  display: none;
+}
+#workspace:focus {
+  outline: none;
+}
+.office-doc {
+  color: #000;
+  font-family: system-ui, sans-serif;
+}
+/* Rendered off-screen first, so a file that fails to open leaves the current document untouched. */
+.office-staging {
+  position: fixed;
+  left: -20000px;
+  top: 0;
+  visibility: hidden;
+}
+.office-docx .docx-wrapper {
+  background: none;
+  padding: 0;
+  gap: 32px;
+}
+.office-docx .docx-wrapper > section.docx {
+  margin: 0 auto 32px;
+  box-shadow: 0 8px 26px #20385e24;
+}
+.office-pptx .pptx-preview-wrapper {
+  background: none !important;
+}
+.office-pptx .pptx-preview-slide-wrapper {
+  margin: 0 auto !important;
+  box-shadow: 0 8px 26px #20385e24;
+}
+.office-pptx .pptx-preview-slide-wrapper:not(.current-slide) {
+  display: none;
+}

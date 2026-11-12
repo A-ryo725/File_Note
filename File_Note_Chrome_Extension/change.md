@@ -1,5 +1,46 @@
 # 変更履歴
 
+## v1.7.0
+
+- 名前を「PDF Note」から「File Note」に変更（拡張機能名・画面・ポップアップ・README）
+- Word（.docx）・PowerPoint（.pptx）の閲覧に対応（編集・保存は不可）
+  - 開き方：「ファイルを開く」、ドラッグ＆ドロップ、ポップアップの「パソコン内のファイルを選ぶ」
+  - 閲覧中は編集ツール・表示形式の切り替えを隠し、「PDFを保存」「編集データを保存」は無効
+  - ページ送り・拡大縮小・「幅に合わせる」はPDFと同じボタンを共用
+  - PowerPoint：左にスライド一覧（選択中はオレンジ枠）。矢印キー・PageUp / PageDown・Space・Home / Endで移動
+  - Word：サイドバーなし。スクロール位置に合わせてページ番号を表示
+- 未保存の編集があるPDFを開いたままWord・PowerPointを開くときは、確認を表示
+- 開けないファイル（旧形式 .doc / .ppt、破損、パスワード付き）はステータス欄にエラーを表示し、表示中の文書はそのまま残す
+- 一部のツールで作られたPowerPoint（存在しない部品への参照を含むもの）も開けるよう、読み込み前に修復
+- 描画ライブラリは、Word・PowerPointを初めて開いたときにだけ読み込む（PDFだけ使う場合の起動は変わらない）
+- 親フォルダー名を `PDF_Note_Chrome_Extension` → `File_Note_Chrome_Extension` に変更
+- フォルダー名を `pdf-note` → `file-note` に変更（中身はそのまま移動）。**Chromeでは古い拡張機能を削除し、`file-note` フォルダーを読み込み直す必要がある**（拡張機能IDが変わるため、サイトへの読み込み許可と「ファイルのURLへのアクセスを許可する」は再設定）
+- 編集データの拡張子を `.pdfnote` → `.filenote` に、内部の識別子を `format: 'file-note'` に変更。**v1.6.0 以前に保存した編集データは開けなくなる**（古い編集データがないことを確認済み）
+- 内部名も `file-note-…` に統一（ファイル選択ダイアログの記憶用ID、一時保存用のデータベース名）。ダイアログが前回のフォルダーを覚えている状態は一度リセットされる
+- manifest：version 1.7.0（従来は 1.5.0 のままだった）、名前・説明文を更新。権限の追加なし
+
+### 変更したファイル
+- 新規：`file-note/office.js`、`file-note/office-repair.js`、`file-note/vendor/docx-preview.min.js`、`pptx-preview.umd.js`、`jszip.min.js`、`DOCX-PREVIEW-LICENSE`、`JSZIP-LICENSE.md`、`tests/office.spec.mjs`、`tests/fixtures/`（確認用ファイル4件）、`playwright.chrome.config.js`
+- 更新：`file-note/editor.js`、`editor.html`、`editor.css`、`pickers.js`、`popup.html`、`popup.js`、`transfer.js`、`manifest.json`、`README.md`、`THIRD_PARTY.md`、`change.md`
+- 名前の変更に伴う更新：`package.json`、`package-lock.json`、`eslint.config.js`、`.prettierignore`、`.gitignore`（`*.filenote` を追加）、`tests/server.mjs`、`tests/*.spec.mjs`
+- 移動：`pdf-note/` フォルダー全体 → `file-note/`、`PDF_Note_Chrome_Extension/` → `File_Note_Chrome_Extension/`
+- 名前の統一に伴う更新：`file-note/VALIDATION.md`（表記のみ）
+- 削除：なし
+
+### 変更しなかったこと
+- リポジトリのルートフォルダー `C:\PDF_Extension` と GitHub のリポジトリ名（`PDF_Extension`）
+- PDFの編集・保存の処理
+- 初期画面の見出し「PDFに、書き込もう。」
+
+### 確認したこと
+- Playwright 13テスト合格（既存7件＋新規6件）：編集データが `.filenote`・`format: 'file-note'` で保存され、再読み込みできること、Word・PowerPointの表示、編集ツールの非表示、ページ送り・キー操作・拡大縮小、PDFとの切り替え、エラー表示、未保存時の確認、ドラッグ＆ドロップ
+- テストはインストール済みのChromeで実行（`npx playwright test --config playwright.chrome.config.js`）。Playwright用Chromiumは未ダウンロードのため `npm test` はそのままでは動かない
+- ESLint エラーなし
+- 未確認：実際のChromeに拡張機能として読み込んでの動作、ポップアップ経由でのWord・PowerPointの受け渡し、実際にOfficeで作成したファイル（確認は生成したサンプルのみ）
+
+### 注意
+- pptx-preview は配布パッケージの利用は無償（商用可）だが、ソース非公開・改変不可。一般公開する場合は作者の条件を確認すること（`file-note/THIRD_PARTY.md`）
+
 ## v1.6.0
 
 - 四角・楕円：色設定の下に「塗りつぶし」チェックを追加（画面・サムネイル・保存PDFに反映。選択中の図形にも適用）

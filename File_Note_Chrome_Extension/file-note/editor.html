@@ -3,14 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PDF Note</title>
+    <title>File Note</title>
     <link rel="stylesheet" href="editor.css" />
   </head>
   <body>
     <header>
-      <div class="brand"><span class="logo">P</span><strong>PDF Note</strong><span id="filename"></span></div>
+      <div class="brand"><span class="logo">F</span><strong>File Note</strong><span id="filename"></span></div>
       <div class="actions">
-        <button id="open">PDFを開く</button><button id="projectOpen">編集データを開く</button
+        <button id="open">ファイルを開く</button><button id="projectOpen">編集データを開く</button
         ><button id="projectSave" disabled>編集データを保存</button><button id="save" class="primary" disabled>PDFを保存</button>
       </div>
     </header>
@@ -36,11 +36,12 @@
     <main>
       <aside id="sidebar">
         <section id="pageSidebar">
-          <div class="rail-header"><strong>ページ</strong><button id="railAppend" disabled>PDFを追加</button></div>
+          <div class="rail-header"><strong><span class="pdf-only">ページ</span><span class="office-only">スライド</span></strong><button id="railAppend" disabled>PDFを追加</button></div>
           <div class="rail-actions">
             <button id="railRotate" disabled>↻ 右に回転</button><button id="railBlank" disabled>白紙を挿入</button>
           </div>
           <div id="pageThumbs" role="listbox" aria-label="PDFのページ一覧"></div>
+          <div id="officeThumbs" role="listbox" aria-label="スライド一覧"></div>
         </section>
         <section id="settingsPanel">
           <label>色<input type="color" id="color" value="#000000" /></label
@@ -62,8 +63,9 @@
         <div id="empty">
           <div class="emptyIcon">PDF</div>
           <h1>PDFに、書き込もう。</h1>
-          <button id="start" class="primary">PDFを選ぶ</button>
+          <button id="start" class="primary">ファイルを選ぶ</button>
         </div>
+        <div id="officeView" hidden></div>
         <div id="pageStack" hidden>
           <div id="pageWrap" hidden>
             <canvas id="pdfCanvas"></canvas
@@ -84,12 +86,12 @@
     <input id="appendInput" type="file" accept="application/pdf,.pdf" multiple hidden /><input
       id="fileInput"
       type="file"
-      accept="application/pdf,.pdf"
+      accept="application/pdf,.pdf,.docx,.pptx"
       hidden
     /><input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden /><input
       id="projectInput"
       type="file"
-      accept=".pdfnote,application/json"
+      accept=".filenote,application/json"
       hidden
     />
     <script src="vendor/pdf-lib.min.js"></script>

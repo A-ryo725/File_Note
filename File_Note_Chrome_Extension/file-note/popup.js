@@ -12,7 +12,7 @@ chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
   if (!source || !['http:', 'https:', 'file:'].includes(source.protocol)) {
     source = null;
     current.disabled = true;
-    message.textContent = 'PDFをChromeで開いてから押すか、「パソコン内のPDFを選ぶ」を使ってください。';
+    message.textContent = 'PDFをChromeで開いてから押すか、「パソコン内のファイルを選ぶ」を使ってください。';
   }
 });
 document.getElementById('open').onclick = () => document.getElementById('localPdf').click();
@@ -24,7 +24,7 @@ document.getElementById('localPdf').onchange = async () => {
   button.disabled = true;
   let token;
   try {
-    message.textContent = '選択したPDFを開いています…';
+    message.textContent = '選択したファイルを開いています…';
     token = await queuePdf(file);
     await chrome.tabs.create({ url: chrome.runtime.getURL('editor.html') + '?transfer=' + encodeURIComponent(token) });
     window.close();
@@ -53,7 +53,7 @@ current.onclick = async () => {
     await chrome.tabs.create({ url: chrome.runtime.getURL('editor.html') + '?source=' + encodeURIComponent(source.href) });
     window.close();
   } catch (e) {
-    message.textContent = '開けませんでした。パソコン内のPDFを選んでください。';
+    message.textContent = '開けませんでした。「パソコン内のファイルを選ぶ」を使ってください。';
   }
 };
 import { queuePdf, consumePdf } from './transfer.js';

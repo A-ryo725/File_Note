@@ -14,7 +14,7 @@ blob-report/
 
 # 編集中のPDF・編集データ（顧客情報が含まれる可能性がある）
 *.pdf
-*.pdfnote
+*.filenote
 
 # ビルド成果物・配布用ZIP
 *.zip
