@@ -2,9 +2,11 @@
 // A separate vector PDF layer is embedded into the unmodified original page.
 import { assemblePdf } from './pages.js';
 import { rectOf, arrowTips, simplify } from './helpers.js';
-export async function buildPdf({ sources, pages, annotations, dimensions, fontBytes, formValues = {} }) {
+import { compressImages, recompressDataUrl } from './compress.js';
+export async function buildPdf({ sources, pages, annotations, dimensions, fontBytes, formValues = {}, compress = false }) {
   const { PDFDocument, rgb, degrees, LineCapStyle, LineJoinStyle, pushGraphicsState, popGraphicsState, setLineJoin } = globalThis.PDFLib;
   const output = await assemblePdf({ sources, pages, formValues, fontBytes });
+  if (compress) await compressImages(output);
   const layer = await PDFDocument.create();
   const hasText = annotations.some((list) => list?.some((o) => o.type === 'text'));
   let font;
@@ -33,7 +35,9 @@ export async function buildPdf({ sources, pages, annotations, dimensions, fontBy
           p.drawText(line, { x: o.x, y: height - o.y - o.size - lineIndex * o.size * 1.35, size: o.size, font, color: color(o.color) });
         }
       } else if (o.type === 'image') {
-        const image = o.data.startsWith('data:image/png') ? await layer.embedPng(o.data) : await layer.embedJpg(o.data);
+        // Added photos live in the separate layer document, so compressImages above never sees them.
+        const data = compress ? await recompressDataUrl(o.data) : o.data;
+        const image = data.startsWith('data:image/png') ? await layer.embedPng(data) : await layer.embedJpg(data);
         p.drawImage(image, { x: o.x, y: height - o.y - o.h, width: o.w, height: o.h });
       } else if (o.type === 'line' || o.type === 'highlight') {
         const [a, b] = o.points;
@@ -112,7 +116,18 @@ export async function buildPdf({ sources, pages, annotations, dimensions, fontBy
       rotate: degrees(angle),
     });
   }
+  fillObjectNumberGaps(output);
   // Regenerate only changed form fields with the Japanese font above. Preserve
   // the original appearances of untouched fields.
   return output.save({ updateFieldAppearances: false });
+}
+// pdf-lib writes no cross-reference entry for an unused object number, where the
+// source file had a "free" entry. MuPDF-based tools then fail with "cannot find
+// object in xref" as soon as they visit that number. A null object reads the same
+// as a missing one, and keeps the cross-reference table unbroken.
+function fillObjectNumberGaps(doc) {
+  const { PDFRef, PDFNull } = globalThis.PDFLib;
+  const used = new Set(doc.context.enumerateIndirectObjects().map(([ref]) => ref.objectNumber));
+  for (let number = 1; number <= doc.context.largestObjectNumber; number++)
+    if (!used.has(number)) doc.context.assign(PDFRef.of(number), PDFNull);
 }

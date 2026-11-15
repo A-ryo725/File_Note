@@ -107,7 +107,7 @@ function status(message, error = false) {
 }
 function setBusy(value, message) {
   busy = value;
-  for (const id of ['save', 'projectSave', 'photo', 'railAppend', 'railRotate', 'railBlank']) $(id).disabled = value || !pdf;
+  for (const id of ['save', 'compress', 'projectSave', 'photo', 'railAppend', 'railRotate', 'railBlank']) $(id).disabled = value || !pdf;
   for (const id of ['open', 'projectOpen', 'start']) $(id).disabled = value;
   for (const view of views.values()) {
     view.overlay.style.pointerEvents = value ? 'none' : 'auto';
@@ -1541,6 +1541,20 @@ function download(bytes, name, type) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
+// Storage can be blocked by browser settings; the choice then lasts for this page only.
+try {
+  $('compress').checked = localStorage.getItem('file-note-compress') === '1';
+} catch {
+  // Not remembered.
+}
+$('compress').onchange = () => {
+  try {
+    if ($('compress').checked) localStorage.setItem('file-note-compress', '1');
+    else localStorage.removeItem('file-note-compress');
+  } catch {
+    // Not remembered.
+  }
+};
 $('save').onclick = async () => {
   if (!pdf || busy) return;
   const saveName = filename.replace(/\.pdf$/i, '') + '_edited.pdf';
@@ -1564,6 +1578,7 @@ $('save').onclick = async () => {
       dimensions,
       formValues: changedForms(),
       fontBytes: fontPromise ? await fontPromise : null,
+      compress: $('compress').checked,
     });
     if (target) await writeTo(target, bytes);
     else download(bytes, saveName, 'application/pdf');

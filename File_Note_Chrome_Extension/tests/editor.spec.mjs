@@ -219,3 +219,24 @@ test('dropping several PDFs joins them, dropping an image adds a photo', async (
   }, png);
   await expect(page.locator('#overlay image')).toHaveCount(1);
 });
+
+test('saved PDFs list every object number, so strict readers (MuPDF) accept them', async ({ page }) => {
+  // A source with a hole in its object numbers, as left by tools that delete objects.
+  const doc = await PDFLib.PDFDocument.create();
+  doc.addPage([400, 600]);
+  const gone = doc.context.register(doc.context.obj({}));
+  doc.addPage([400, 600]);
+  doc.context.delete(gone);
+  await openPdf(page, Buffer.from(await doc.save({ useObjectStreams: false })));
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#save')]);
+  const bytes = await readFile(await download.path());
+
+  // The cross-reference stream must be one unbroken run: no /Index, or /Index [0 Size].
+  const text = bytes.toString('latin1');
+  const start = Number(text.match(/startxref\s+(\d+)\s+%%EOF\s*$/)[1]);
+  const dict = text.slice(start, text.indexOf('stream', start));
+  const size = Number(dict.match(/\/Size\s+(\d+)/)[1]);
+  const index = dict.match(/\/Index\s*\[([^\]]*)\]/)?.[1].trim().split(/\s+/).map(Number) ?? [0, size];
+  expect(index).toEqual([0, size]);
+  expect((await PDFLib.PDFDocument.load(bytes)).getPageCount()).toBe(2);
+});

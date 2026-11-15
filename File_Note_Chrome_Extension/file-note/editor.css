@@ -148,6 +148,17 @@ label.check input {
   width: auto;
   margin: 0;
 }
+#compressRow {
+  gap: 6px;
+  margin: 0 4px;
+  color: #26354c;
+  white-space: nowrap;
+  cursor: pointer;
+}
+#compressRow:has(:disabled) {
+  opacity: 0.4;
+  cursor: default;
+}
 input[type='color'] {
   height: 38px;
   padding: 3px;
@@ -302,7 +313,8 @@ dialog form > div {
     width: 175px;
     padding: 12px;
   }
-  .actions button {
+  .actions button,
+  #compressRow {
     font-size: 12px;
   }
   footer > span:last-child {

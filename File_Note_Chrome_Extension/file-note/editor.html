@@ -11,7 +11,9 @@
       <div class="brand"><span class="logo">F</span><strong>File Note</strong><span id="filename"></span></div>
       <div class="actions">
         <button id="open">ファイルを開く</button><button id="projectOpen">編集データを開く</button
-        ><button id="projectSave" disabled>編集データを保存</button><button id="save" class="primary" disabled>PDFを保存</button>
+        ><button id="projectSave" disabled>編集データを保存</button
+        ><label class="check" id="compressRow"><input type="checkbox" id="compress" disabled />画像を圧縮</label
+        ><button id="save" class="primary" disabled>PDFを保存</button>
       </div>
     </header>
     <nav aria-label="編集ツール">
@@ -36,7 +38,10 @@
     <main>
       <aside id="sidebar">
         <section id="pageSidebar">
-          <div class="rail-header"><strong><span class="pdf-only">ページ</span><span class="office-only">スライド</span></strong><button id="railAppend" disabled>PDFを追加</button></div>
+          <div class="rail-header">
+            <strong><span class="pdf-only">ページ</span><span class="office-only">スライド</span></strong
+            ><button id="railAppend" disabled>PDFを追加</button>
+          </div>
           <div class="rail-actions">
             <button id="railRotate" disabled>↻ 右に回転</button><button id="railBlank" disabled>白紙を挿入</button>
           </div>
