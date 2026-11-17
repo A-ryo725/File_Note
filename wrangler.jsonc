@@ -3,6 +3,9 @@
 {
   "name": "file-note",
   "compatibility_date": "2025-10-01",
+  // https://file-note.kaihatu06725.workers.dev で公開する（プレビュー用URLは使わない）
+  "workers_dev": true,
+  "preview_urls": false,
   "assets": {
     "directory": "./File_Note_Chrome_Extension/dist"
   }
