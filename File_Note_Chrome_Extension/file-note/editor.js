@@ -587,6 +587,12 @@ function showText(p, o = null) {
   $('textDialog').showModal();
   $('textValue').focus();
 }
+// The editor's own shortcuts and paste stay inactive while a window (text input, help) is open.
+const dialogOpen = () => $('textDialog').open || $('helpDialog').open;
+$('help').onclick = () => $('helpDialog').showModal();
+$('helpDialog').addEventListener('click', (e) => {
+  if (e.target === $('helpDialog')) $('helpDialog').close(); // click outside the window
+});
 $('textDialog').addEventListener('close', () => {
   if ($('textDialog').returnValue !== 'ok' || !textTarget) {
     textTarget = null;
@@ -1399,7 +1405,7 @@ $('imageInput').onchange = async () => {
   if (file) await addImages([file]);
 };
 document.addEventListener('paste', (event) => {
-  if (!pdf || busy || gesture || $('textDialog').open || event.target.closest?.('input,textarea,select,[contenteditable="true"]')) return;
+  if (!pdf || busy || gesture || dialogOpen() || event.target.closest?.('input,textarea,select,[contenteditable="true"]')) return;
   let files = Array.from(event.clipboardData?.items || [])
     .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
     .map((item) => item.getAsFile())
@@ -1634,7 +1640,7 @@ async function openProject(file) {
   }
 }
 document.addEventListener('keydown', (e) => {
-  if (e.target.matches('input,textarea,select') || $('textDialog').open || busy) return;
+  if (e.target.matches('input,textarea,select') || dialogOpen() || busy) return;
   if (e.ctrlKey || e.metaKey) {
     if (e.key.toLowerCase() === 'z') {
       e.preventDefault();

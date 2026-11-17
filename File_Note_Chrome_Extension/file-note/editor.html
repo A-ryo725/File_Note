@@ -10,7 +10,8 @@
     <header>
       <div class="brand"><span class="logo">F</span><strong>File Note</strong><span id="version"></span><span id="filename"></span></div>
       <div class="actions">
-        <button id="open">ファイルを開く</button><button id="projectSave" disabled>編集データを保存</button
+        <button id="help" aria-haspopup="dialog">使い方</button><button id="open">ファイルを開く</button
+        ><button id="projectSave" disabled>編集データを保存</button
         ><label class="check" id="compressRow"><input type="checkbox" id="compress" disabled />画像を圧縮</label
         ><button id="save" class="primary" disabled>PDFを保存</button>
       </div>
@@ -37,10 +38,7 @@
     <main>
       <aside id="sidebar">
         <section id="pageSidebar">
-          <div class="rail-header">
-            <strong>ページ</strong
-            ><button id="railAppend" disabled>PDFを追加</button>
-          </div>
+          <div class="rail-header"><strong>ページ</strong><button id="railAppend" disabled>PDFを追加</button></div>
           <div class="rail-actions">
             <button id="railRotate" disabled>↻ 右に回転</button><button id="railBlank" disabled>白紙を挿入</button>
           </div>
@@ -84,6 +82,168 @@
         <textarea id="textValue" rows="5" aria-label="追加する文字"></textarea>
         <div><button value="cancel">キャンセル</button><button id="textConfirm" value="ok" class="primary">配置する</button></div>
       </form>
+    </dialog>
+    <dialog id="helpDialog" aria-labelledby="helpTitle">
+      <form method="dialog" class="help-head">
+        <h2 id="helpTitle">使い方</h2>
+        <button value="close" aria-label="閉じる">✕</button>
+      </form>
+      <div class="help-body">
+        <section>
+          <h3>3ステップで使えます</h3>
+          <ol class="help-steps">
+            <li><b>ファイルを開く</b>でPDFを選ぶ（画面にドラッグ＆ドロップしてもOK）</li>
+            <li>上のツールを選んで、ページに書き込む</li>
+            <li><b>PDFを保存</b>を押す</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>「PDFを保存」と「編集データを保存」の違い</h3>
+          <div class="help-compare">
+            <div>
+              <h4>PDFを保存</h4>
+              <p>書き込みを入れたPDFができあがります。</p>
+              <ul>
+                <li>人に送る・印刷する・提出するときはこちら</li>
+                <li><code>元の名前_edited.pdf</code> で保存。元のPDFは上書きしません</li>
+                <li>保存した後は、書き込みを個別に動かしたり直したりできません</li>
+              </ul>
+            </div>
+            <div>
+              <h4>編集データを保存</h4>
+              <p>作業の続きをするためのファイル（<code>.filenote</code>）です。</p>
+              <ul>
+                <li>あとで書き込みを動かす・直す・消すときはこちら</li>
+                <li>「ファイルを開く」で選ぶと、保存したときの状態から再開できます</li>
+                <li>File Note以外のソフトでは開けません</li>
+              </ul>
+            </div>
+          </div>
+          <p class="help-note">自動保存はありません。途中でやめるときは「編集データを保存」、完成したら「PDFを保存」がおすすめです。</p>
+        </section>
+
+        <section>
+          <h3>ツールの使い方</h3>
+          <table class="help-table">
+            <tr>
+              <th>選択・移動</th>
+              <td>書き込みをクリックで選択し、ドラッグで移動。何もない所をドラッグすると、まとめて選択できます</td>
+            </tr>
+            <tr>
+              <th>文字</th>
+              <td>置きたい所をクリック → 文字を入力 →「配置する」。置いた文字はダブルクリックで直せます</td>
+            </tr>
+            <tr>
+              <th>直線・矢印</th>
+              <td>始点から終点までドラッグ</td>
+            </tr>
+            <tr>
+              <th>手書き</th>
+              <td>マウスやペンで自由に描きます</td>
+            </tr>
+            <tr>
+              <th>マーカー</th>
+              <td>文字の上をなぞると、半透明の線で目立たせられます</td>
+            </tr>
+            <tr>
+              <th>四角・楕円</th>
+              <td>ドラッグして大きさを決めます。左の「塗りつぶし」で中を塗れます</td>
+            </tr>
+            <tr>
+              <th>写真を追加</th>
+              <td>PNG・JPEG・WebPの画像を置きます。右下の四角をドラッグで大きさを変更</td>
+            </tr>
+            <tr>
+              <th>戻す・やり直す</th>
+              <td>操作を1つ前に戻す・戻した操作をやり直す</td>
+            </tr>
+          </table>
+          <p class="help-note">色・文字の大きさ・線の太さは、左側のパネルで変えられます。選択中の書き込みにも反映されます。</p>
+        </section>
+
+        <section>
+          <h3>ページの操作</h3>
+          <p>「選択・移動」のとき、左側にページの一覧が出ます。</p>
+          <table class="help-table">
+            <tr>
+              <th>並べ替え</th>
+              <td>ページの小さな画像をドラッグ</td>
+            </tr>
+            <tr>
+              <th>削除</th>
+              <td>ページの小さな画像をクリックして Delete キー</td>
+            </tr>
+            <tr>
+              <th>PDFを追加</th>
+              <td>別のPDFを後ろにつなげます</td>
+            </tr>
+            <tr>
+              <th>右に回転・白紙を挿入</th>
+              <td>表示中のページを回す・白いページを入れる</td>
+            </tr>
+          </table>
+        </section>
+
+        <section>
+          <h3>便利な機能</h3>
+          <ul class="help-tips">
+            <li><b>画像の貼り付け：</b>コピーした画像やスクリーンショットを <kbd>Ctrl</kbd>+<kbd>V</kbd> でページに貼れます</li>
+            <li><b>PDFをつなげる：</b>複数のPDFをまとめて画面にドラッグ＆ドロップすると、1つにつながります</li>
+            <li><b>PDFの入力欄：</b>申込書などの入力欄・チェックボックスは、そのままクリックして入力できます</li>
+            <li>
+              <b>まっすぐ描く：</b>直線・矢印・マーカーは <kbd>Shift</kbd> を押しながらで水平・垂直に。四角・楕円は正方形・正円になります
+            </li>
+            <li><b>細かく動かす：</b>選択した書き込みは矢印キーで1ずつ、<kbd>Shift</kbd>+矢印キーで10ずつ動きます</li>
+            <li><b>書き込みのコピー：</b>選択して <kbd>Ctrl</kbd>+<kbd>C</kbd> → <kbd>Ctrl</kbd>+<kbd>V</kbd></li>
+            <li><b>表示の切り替え：</b>右上の「表示」で「1ページずつ」と「縦に連続表示」を切り替えられます</li>
+            <li>
+              <b>容量を小さく：</b
+              >「PDFを保存」の左の「画像を圧縮」にチェックを入れると、写真の多いPDFが軽くなります（文字や図形はそのまま）
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h3>ショートカット</h3>
+          <table class="help-table help-keys">
+            <tr>
+              <th><kbd>Ctrl</kbd>+<kbd>S</kbd></th>
+              <td>PDFを保存</td>
+            </tr>
+            <tr>
+              <th><kbd>Ctrl</kbd>+<kbd>Z</kbd></th>
+              <td>戻す</td>
+            </tr>
+            <tr>
+              <th><kbd>Ctrl</kbd>+<kbd>Y</kbd></th>
+              <td>やり直す</td>
+            </tr>
+            <tr>
+              <th><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>V</kbd></th>
+              <td>書き込みのコピー・貼り付け、画像の貼り付け</td>
+            </tr>
+            <tr>
+              <th><kbd>Delete</kbd></th>
+              <td>選択した書き込み（またはページ）を削除</td>
+            </tr>
+            <tr>
+              <th><kbd>Esc</kbd></th>
+              <td>選択を解除</td>
+            </tr>
+          </table>
+          <p class="help-note">Macでは <kbd>Ctrl</kbd> の代わりに <kbd>⌘</kbd> を使います。</p>
+        </section>
+
+        <section>
+          <h3>安心して使うために</h3>
+          <ul class="help-tips">
+            <li>PDFはこのパソコンの中だけで処理します。インターネット上に送られることはありません</li>
+            <li>パスワード付きのPDF、200MBを超えるPDFは開けません</li>
+            <li>もとからある文章を書き換えたり消したりはできません。上から書き込む使い方です</li>
+          </ul>
+        </section>
+      </div>
     </dialog>
     <input id="appendInput" type="file" accept="application/pdf,.pdf" multiple hidden /><input
       id="fileInput"
