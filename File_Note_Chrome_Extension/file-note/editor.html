@@ -38,14 +38,13 @@
       <aside id="sidebar">
         <section id="pageSidebar">
           <div class="rail-header">
-            <strong><span class="pdf-only">ページ</span><span class="office-only">スライド</span></strong
+            <strong>ページ</strong
             ><button id="railAppend" disabled>PDFを追加</button>
           </div>
           <div class="rail-actions">
             <button id="railRotate" disabled>↻ 右に回転</button><button id="railBlank" disabled>白紙を挿入</button>
           </div>
           <div id="pageThumbs" role="listbox" aria-label="PDFのページ一覧"></div>
-          <div id="officeThumbs" role="listbox" aria-label="スライド一覧"></div>
         </section>
         <section id="settingsPanel">
           <label>色<input type="color" id="color" value="#000000" /></label
@@ -69,7 +68,6 @@
           <h1>PDFに、書き込もう。</h1>
           <button id="start" class="primary">ファイルを選ぶ</button>
         </div>
-        <div id="officeView" hidden></div>
         <div id="pageStack" hidden>
           <div id="pageWrap" hidden>
             <canvas id="pdfCanvas"></canvas
@@ -90,7 +88,7 @@
     <input id="appendInput" type="file" accept="application/pdf,.pdf" multiple hidden /><input
       id="fileInput"
       type="file"
-      accept="application/pdf,.pdf,.docx,.pptx,.filenote"
+      accept="application/pdf,.pdf,.filenote"
       hidden
     /><input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden />
     <script src="vendor/pdf-lib.min.js"></script>

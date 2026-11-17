@@ -2,6 +2,13 @@
 
 ## 未リリース
 
+- Word（.docx）・PowerPoint（.pptx）の閲覧機能を削除し、PDF編集専用に変更
+  - 閲覧機能つきの版は `office-viewer` ブランチに保存
+  - 「ファイルを開く」・ドラッグ＆ドロップ・ポップアップで選べるのは PDF と編集データ（.filenote）のみ
+  - 拡張機能名を「File Note — ChromeのPDFに書き込み」に変更
+  - 削除したファイル：`file-note/office.js`、`office-repair.js`、`vendor/docx-preview.min.js`、`vendor/pptx-preview.umd.js`、`vendor/jszip.min.js`、`vendor/DOCX-PREVIEW-LICENSE`、`vendor/JSZIP-LICENSE.md`、`tests/office.spec.mjs`、`tests/fixtures/`（sample.docx・sample.pptx・fake.pptx・old.doc）
+  - 変更したファイル：`file-note/editor.js`、`editor.html`、`editor.css`、`pickers.js`、`popup.html`、`manifest.json`、`THIRD_PARTY.md`、`README.md`（ルートと `file-note/`）
+
 - 編集データ（.filenote）を、PDFなどと同じ方法で開けるようにした
   - 対象：「ファイルを選ぶ」「ファイルを開く」、ドラッグ＆ドロップ、ポップアップの「パソコン内のファイルを選ぶ」
   - 「編集データを開く」ボタンは削除（「ファイルを開く」に一本化）
