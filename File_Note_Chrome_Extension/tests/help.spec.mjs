@@ -23,6 +23,7 @@ test('「使い方」は「ファイルを開く」の左にあり、PDFの上�
   const dialog = page.locator('#helpDialog');
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText('「PDFを保存」と「編集データを保存」の違い');
+  await expect(dialog).toContainText('PDFにもとからある入力欄に書き込む');
   await expect(dialog).toContainText('便利な機能');
   // The editor's shortcuts do not act behind the window.
   await page.keyboard.press('Control+s');
@@ -42,4 +43,21 @@ test('PDFを開く前でも使い方を開ける', async ({ page }) => {
   await page.goto('/editor.html');
   await page.locator('#help').click();
   await expect(page.locator('#helpDialog')).toBeVisible();
+});
+
+test('もとからある入力欄は、どのツールを選んでいても入力できる', async ({ page }) => {
+  const doc = await PDFLib.PDFDocument.create();
+  const first = doc.addPage([400, 600]);
+  doc.getForm().createTextField('name').addToPage(first, { x: 50, y: 540, width: 200, height: 24 });
+  await page.addInitScript(() => delete window.showOpenFilePicker);
+  await page.goto('/editor.html');
+  await page.locator('#fileInput').setInputFiles({ name: 'form.pdf', mimeType: 'application/pdf', buffer: Buffer.from(await doc.save()) });
+  const field = page.locator('#formLayer .pdf-text-field');
+  for (const tool of ['pen', 'text', 'rect']) {
+    await page.locator(`button[data-tool="${tool}"]`).click();
+    await field.click();
+    await field.fill(`入力-${tool}`);
+    await expect(field).toHaveValue(`入力-${tool}`);
+  }
+  await expect(page.locator('#textDialog')).toBeHidden();
 });
