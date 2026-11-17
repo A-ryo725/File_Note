@@ -10,7 +10,7 @@
   - 新規：`web/build.sh`、`web/_headers`、`web/README.md`、`wrangler.jsonc`、`.gitignore`（ルート）
   - 確認：公開用フォルダーをセキュリティ設定付きで配信し、Playwright 28件合格（ポップアップのテスト1件はWeb版に含めないため対象外）、トップページでエラーなし
   - 確認：`wrangler deploy --dry-run` で設定が正しいこと、`wrangler dev` でトップページ・セキュリティ設定・スクリプトが配信され、ポップアップが配信されないこと
-  - 未確認：Cloudflare 上での実際の公開
+  - 公開先：https://file-note.r725cf.workers.dev（README に Web版の案内を追加）
 
 - PDF以外のファイル形式の閲覧機能を削除し、PDF編集専用に変更
   - 開けるのは PDF と編集データ（.filenote）のみ
