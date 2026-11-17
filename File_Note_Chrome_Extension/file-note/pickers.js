@@ -41,19 +41,3 @@ export async function pickPdf() {
   if (!picked) return picked;
   return { handle: picked[0], file: await picked[0].getFile() };
 }
-
-// Starts in the folder of the PDF that was opened, when its handle is known.
-export function pickSaveTarget(suggestedName, sourceHandle) {
-  return show('showSaveFilePicker', {
-    id: 'file-note-save',
-    suggestedName,
-    startIn: sourceHandle || undefined,
-    types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }],
-  });
-}
-
-export async function writeTo(handle, bytes) {
-  const writable = await handle.createWritable();
-  await writable.write(bytes);
-  await writable.close();
-}

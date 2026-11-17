@@ -2,7 +2,7 @@ import * as pdfjs from './vendor/pdf.min.mjs';
 import { buildPdf } from './export.js';
 import { consumePdf } from './transfer.js';
 import { PageSidebar } from './sidebar.js';
-import { pickPhoto, pickPdf, pickSaveTarget, writeTo } from './pickers.js';
+import { pickPhoto, pickPdf } from './pickers.js';
 import { createOfficeView, officeKind, OFFICE_MESSAGES } from './office.js';
 import { cloneNotes, rectOf, arrowTips, simplify, fieldKind, radioStateOf, dropdownValueOf } from './helpers.js';
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdf.worker.min.mjs', import.meta.url).href;
@@ -1041,8 +1041,6 @@ async function loadBundle(files, name, pages = null, restored = null, restoredFo
     sources = prepared;
     pageOrder = clone(order);
     pdf = sources[0].preview;
-    sourceHandle = pendingHandle;
-    pendingHandle = null;
     filename = name.replace(/[^\p{L}\p{N}_. ()-]/gu, '_') || 'document.pdf';
     annotations = Array.from({ length: pageOrder.length }, (_, i) => clone(restored?.[i] || []));
     dimensions = [];
@@ -1100,7 +1098,6 @@ async function closePdf() {
   sources = [];
   pageOrder = [];
   pdf = null;
-  sourceHandle = null;
   annotations = [];
   dimensions = [];
   pageIndex = 0;
@@ -1137,7 +1134,6 @@ async function openOffice(file) {
   } catch (e) {
     status(e.message, true);
   } finally {
-    pendingHandle = null;
     setBusy(false);
   }
 }
@@ -1158,17 +1154,11 @@ async function loadFile(file) {
     status(e.message, true);
   }
 }
-let sourceHandle = null,
-  pendingHandle = null;
 async function openPdf() {
   if (busy) return;
   const picked = await pickPdf();
   if (picked === undefined) $('fileInput').click();
-  else if (picked) {
-    pendingHandle = picked.handle;
-    await loadFile(picked.file);
-    pendingHandle = null;
-  }
+  else if (picked) await loadFile(picked.file);
 }
 for (const id of ['open', 'start']) $(id).onclick = openPdf;
 $('fileInput').onchange = async () => {
@@ -1557,10 +1547,8 @@ $('compress').onchange = () => {
 };
 $('save').onclick = async () => {
   if (!pdf || busy) return;
+  // A download, like the project save: Chrome's save dialog can report "cancelled" for some folders.
   const saveName = filename.replace(/\.pdf$/i, '') + '_edited.pdf';
-  // The picker needs the click's user activation, so it opens before the slow PDF build.
-  const target = await pickSaveTarget(saveName, sourceHandle);
-  if (target === null) return;
   setBusy(true, 'PDFを作成しています…');
   try {
     if (annotations.some((list) => list.some((o) => o.type === 'text')) || Object.keys(changedForms()).length)
@@ -1580,10 +1568,9 @@ $('save').onclick = async () => {
       fontBytes: fontPromise ? await fontPromise : null,
       compress: $('compress').checked,
     });
-    if (target) await writeTo(target, bytes);
-    else download(bytes, saveName, 'application/pdf');
+    download(bytes, saveName, 'application/pdf');
     dirty = false;
-    status(target ? '編集済みPDFを保存しました。' : '編集済みPDFをダウンロードしました。元のファイルとは別名で保存します。');
+    status('編集済みPDFをダウンロードしました。元のファイルとは別名で保存します。');
   } catch (e) {
     status('保存できませんでした：' + e.message, true);
   } finally {

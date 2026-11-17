@@ -310,3 +310,21 @@ test('form text keeps the plain glyph of every character, for viewers that redra
   );
   expect(missing).toEqual(['checked']);
 });
+
+test('PDF save is a download even where the save dialog exists, like the project save', async ({ page }) => {
+  // A save dialog that reports "cancelled" (as Chrome does for some folders) must not swallow the save.
+  await page.addInitScript(() => {
+    delete window.showOpenFilePicker;
+    window.showSaveFilePicker = async () => {
+      window.saveDialogShown = true;
+      throw new DOMException('The user aborted a request.', 'AbortError');
+    };
+  });
+  await page.goto('/editor.html');
+  await page.locator('#fileInput').setInputFiles({ name: 'a.pdf', mimeType: 'application/pdf', buffer: await makePdf() });
+  await expect(page.locator('#pageNumber')).toHaveText(/^1 \/ \d+$/);
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#save')]);
+  expect(download.suggestedFilename()).toBe('a_edited.pdf');
+  expect(await page.evaluate(() => window.saveDialogShown)).toBeUndefined();
+  await expect(page.locator('#status')).toHaveText(/ダウンロードしました/);
+});
