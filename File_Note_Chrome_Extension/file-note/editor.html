@@ -8,10 +8,9 @@
   </head>
   <body>
     <header>
-      <div class="brand"><span class="logo">F</span><strong>File Note</strong><span id="filename"></span></div>
+      <div class="brand"><span class="logo">F</span><strong>File Note</strong><span id="version"></span><span id="filename"></span></div>
       <div class="actions">
-        <button id="open">ファイルを開く</button><button id="projectOpen">編集データを開く</button
-        ><button id="projectSave" disabled>編集データを保存</button
+        <button id="open">ファイルを開く</button><button id="projectSave" disabled>編集データを保存</button
         ><label class="check" id="compressRow"><input type="checkbox" id="compress" disabled />画像を圧縮</label
         ><button id="save" class="primary" disabled>PDFを保存</button>
       </div>
@@ -91,14 +90,9 @@
     <input id="appendInput" type="file" accept="application/pdf,.pdf" multiple hidden /><input
       id="fileInput"
       type="file"
-      accept="application/pdf,.pdf,.docx,.pptx"
+      accept="application/pdf,.pdf,.docx,.pptx,.filenote"
       hidden
-    /><input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden /><input
-      id="projectInput"
-      type="file"
-      accept=".filenote,application/json"
-      hidden
-    />
+    /><input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden />
     <script src="vendor/pdf-lib.min.js"></script>
     <script src="vendor/fontkit.umd.min.js"></script>
     <script type="module" src="editor.js"></script>

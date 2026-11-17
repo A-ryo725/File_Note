@@ -29,11 +29,12 @@ export async function pickPdf() {
     id: 'file-note-open',
     types: [
       {
-        description: 'PDF・Word・PowerPoint',
+        description: 'PDF・Word・PowerPoint・編集データ',
         accept: {
           'application/pdf': ['.pdf'],
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
           'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+          'application/json': ['.filenote'],
         },
       },
     ],

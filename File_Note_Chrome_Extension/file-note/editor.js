@@ -7,6 +7,11 @@ import { createOfficeView, officeKind, OFFICE_MESSAGES } from './office.js';
 import { cloneNotes, rectOf, arrowTips, simplify, fieldKind, radioStateOf, dropdownValueOf } from './helpers.js';
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdf.worker.min.mjs', import.meta.url).href;
 const $ = (id) => document.getElementById(id);
+// The version comes from the manifest, so it never goes stale.
+fetch(new URL('./manifest.json', import.meta.url))
+  .then((r) => r.json())
+  .then((m) => ($('version').textContent = 'v' + m.version))
+  .catch(() => {});
 const NS = 'http://www.w3.org/2000/svg';
 let overlay = $('overlay');
 let formLayer = $('formLayer');
@@ -108,7 +113,7 @@ function status(message, error = false) {
 function setBusy(value, message) {
   busy = value;
   for (const id of ['save', 'compress', 'projectSave', 'photo', 'railAppend', 'railRotate', 'railBlank']) $(id).disabled = value || !pdf;
-  for (const id of ['open', 'projectOpen', 'start']) $(id).disabled = value;
+  for (const id of ['open', 'start']) $(id).disabled = value;
   for (const view of views.values()) {
     view.overlay.style.pointerEvents = value ? 'none' : 'auto';
     view.forms.inert = value;
@@ -1137,8 +1142,10 @@ async function openOffice(file) {
     setBusy(false);
   }
 }
+const isProject = (name) => /\.filenote$/i.test(name);
 async function loadFile(file) {
   if (!file || busy) return;
+  if (isProject(file.name)) return openProject(file);
   if (officeKind(file.name)) return openOffice(file);
   if (file.size > 200 * 1024 * 1024) {
     status('200MB以下のPDFを選んでください。', true);
@@ -1289,7 +1296,9 @@ async function dropFiles(files) {
   const pdfs = files.filter((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
   const images = files.filter((f) => /^image\/(png|jpeg|webp)$/.test(f.type));
   const officeFile = files.find((f) => officeKind(f.name));
-  if (!pdfs.length && officeFile) await openOffice(officeFile);
+  const project = files.find((f) => isProject(f.name));
+  if (!pdfs.length && project) await openProject(project);
+  else if (!pdfs.length && officeFile) await openOffice(officeFile);
   else if (pdfs.length > 1) {
     if (pdfs.reduce((sum, f) => sum + f.size, 0) > 200 * 1024 * 1024) {
       status('PDFの合計サイズは200MB以下にしてください。', true);
@@ -1306,7 +1315,7 @@ async function dropFiles(files) {
   else if (images.length) {
     if (pdf) await addImages(images);
     else status('先にPDFを開いてから、画像をドロップしてください。', true);
-  } else status('PDF・Word・PowerPoint、または画像（PNG・JPEG・WebP）をドロップしてください。', true);
+  } else status('PDF・Word・PowerPoint・編集データ、または画像（PNG・JPEG・WebP）をドロップしてください。', true);
 }
 $('workspace').addEventListener('dragover', (e) => {
   e.preventDefault();
@@ -1685,12 +1694,7 @@ function validateProject(p) {
     }
   }
 }
-$('projectOpen').onclick = () => {
-  if (!busy) $('projectInput').click();
-};
-$('projectInput').onchange = async () => {
-  const file = $('projectInput').files[0];
-  $('projectInput').value = '';
+async function openProject(file) {
   if (!file || busy) return;
   setBusy(true, '編集データを読み込んでいます…');
   try {
@@ -1711,7 +1715,7 @@ $('projectInput').onchange = async () => {
     setBusy(false);
     status('編集データを開けませんでした：' + e.message, true);
   }
-};
+}
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('input,textarea,select') || $('textDialog').open || busy) return;
   if (office.active) {
@@ -1806,7 +1810,8 @@ if (transfer) {
     const item = await consumePdf(transfer);
     if (!item) throw new Error('選択したファイルが見つかりません。「ファイルを開く」から選んでください。');
     setBusy(false);
-    if (officeKind(item.filename)) await openOffice(new File([item.file], item.filename));
+    if (isProject(item.filename)) await openProject(new File([item.file], item.filename));
+    else if (officeKind(item.filename)) await openOffice(new File([item.file], item.filename));
     else await loadPdf(new Uint8Array(await item.file.arrayBuffer()), item.filename);
   } catch (e) {
     setBusy(false);

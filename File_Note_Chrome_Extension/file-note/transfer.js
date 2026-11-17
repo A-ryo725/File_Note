@@ -6,7 +6,8 @@ const openDatabase = () =>
     request.onerror = () => reject(request.error);
   });
 export async function queuePdf(file) {
-  if (file.size > 200 * 1024 * 1024) throw new Error('200MB以下のファイルを選んでください。');
+  // Project files embed their PDFs as base64, so they may be larger.
+  if (file.size > (/\.filenote$/i.test(file.name) ? 350 : 200) * 1024 * 1024) throw new Error('ファイルが大きすぎます。');
   const db = await openDatabase(),
     id = crypto.randomUUID();
   try {

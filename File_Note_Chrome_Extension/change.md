@@ -2,6 +2,15 @@
 
 ## 未リリース
 
+- 編集データ（.filenote）を、PDFなどと同じ方法で開けるようにした
+  - 対象：「ファイルを選ぶ」「ファイルを開く」、ドラッグ＆ドロップ、ポップアップの「パソコン内のファイルを選ぶ」
+  - 「編集データを開く」ボタンは削除（「ファイルを開く」に一本化）
+  - ポップアップから渡す場合のサイズ上限：編集データは350MB（PDFを埋め込むため）、それ以外は従来どおり200MB
+  - 変更したファイル：`file-note/editor.js`、`editor.html`、`popup.html`、`pickers.js`、`transfer.js`、`tests/editor.spec.mjs`、`README.md`（ルートと `file-note/`）
+- 左上の「File Note」の右に、小さくバージョン（例：v1.7.0）を表示
+  - manifest.json の version を読み込んで表示するため、バージョンを上げると自動で変わる
+  - 変更したファイル：`file-note/editor.js`、`editor.html`、`editor.css`、`tests/editor.spec.mjs`
+
 - 修正：環境によって「PDFを保存」で保存できない問題（保存先を選んでも何も起きない）
   - 原因：PDF保存だけChromeの保存ダイアログを使っていた。保存先によってはChromeが「キャンセル」と返し、何も表示せずに終わっていた（ダウンロードフォルダを選んだ他のPCで発生）
   - 対応：編集データと同じダウンロード方式に統一。`元の名前_edited.pdf` がChromeのダウンロード先に保存される

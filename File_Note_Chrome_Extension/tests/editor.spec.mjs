@@ -179,18 +179,41 @@ test('project file keeps notes and simplifies pen strokes', async ({ page }) => 
   await drag(page, [0.2, 0.2], [0.5, 0.3]);
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#projectSave')]);
   expect(download.suggestedFilename()).toBe('sample.filenote');
-  await expect(page.locator('#projectInput')).toHaveAttribute('accept', /\.filenote/);
   const text = await readFile(await download.path(), 'utf8');
   const project = JSON.parse(text);
+  expect(project.format).toBe('file-note');
   const pen = project.annotations[0].find((o) => o.type === 'pen');
   expect(pen.points.length).toBeLessThan(20); // 80 near-collinear moves collapse
   expect(project.annotations[0].some((o) => o.type === 'rect')).toBe(true);
 
+  // The one "open" picker takes project files too; there is no separate button.
   await page.reload();
-  expect(project.format).toBe('file-note');
-  await expect(page.locator('#projectInput')).not.toHaveAttribute('accept', /pdfnote/);
-  await page.locator('#projectInput').setInputFiles({ name: 'sample.filenote', mimeType: 'application/json', buffer: Buffer.from(text) });
+  await expect(page.locator('#projectOpen')).toHaveCount(0);
+  await expect(page.locator('#fileInput')).toHaveAttribute('accept', /\.filenote/);
+  await page.locator('#fileInput').setInputFiles({ name: 'sample.filenote', mimeType: 'application/json', buffer: Buffer.from(text) });
   await expect(page.locator('#overlay g[data-id]')).toHaveCount(2);
+
+  // Dropped on the workspace.
+  await page.reload();
+  await page.evaluate((text) => {
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([text], 'sample.filenote'));
+    document.getElementById('workspace').dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
+  }, text);
+  await expect(page.locator('#overlay g[data-id]')).toHaveCount(2);
+
+  // Handed over from the popup's file picker.
+  await expect(async () => {
+    await page.goto('/popup.html');
+    await expect(page.locator('#localPdf')).toHaveAttribute('accept', /\.filenote/);
+  }).toPass();
+  const token = await page.evaluate(async (text) => {
+    const { queuePdf } = await import('./transfer.js');
+    return queuePdf(new File([text], 'sample.filenote'));
+  }, text);
+  await page.goto('/editor.html?transfer=' + encodeURIComponent(token));
+  await expect(page.locator('#overlay g[data-id]')).toHaveCount(2);
+  await expect(page.locator('#filename')).toHaveText('sample.pdf');
 });
 
 test('dropping several PDFs joins them, dropping an image adds a photo', async ({ page }) => {
@@ -327,4 +350,10 @@ test('PDF save is a download even where the save dialog exists, like the project
   expect(download.suggestedFilename()).toBe('a_edited.pdf');
   expect(await page.evaluate(() => window.saveDialogShown)).toBeUndefined();
   await expect(page.locator('#status')).toHaveText(/ダウンロードしました/);
+});
+
+test('the header shows the version from the manifest', async ({ page }) => {
+  const { version } = JSON.parse(await readFile(new URL('../file-note/manifest.json', import.meta.url), 'utf8'));
+  await page.goto('/editor.html');
+  await expect(page.locator('.brand #version')).toHaveText('v' + version);
 });

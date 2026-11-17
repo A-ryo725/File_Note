@@ -78,6 +78,12 @@ header {
 .brand strong {
   font-size: 20px;
 }
+.brand #version {
+  align-self: flex-end;
+  margin: 0 0 4px -4px;
+  color: #8a97ab;
+  font-size: 11px;
+}
 .brand #filename {
   color: #60708a;
   max-width: 280px;
