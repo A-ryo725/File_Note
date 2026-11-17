@@ -1,4 +1,11 @@
-Google Inc.
+File Note Sans (fonts/FileNoteSans-Regular.ttf) is built from the following fonts
+by tools/build-font.py. It is a modified version under the SIL Open Font License 1.1.
+
+Noto Sans JP, Noto Sans KR, Noto Sans SC:
+  (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
+Noto Sans: Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+Noto Sans Symbols, Noto Sans Symbols 2: Copyright 2022 The Noto Project Authors (https://github.com/notofonts/symbols)
+Noto Emoji: Copyright 2013 Google LLC
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

@@ -630,7 +630,23 @@ $('textDialog').addEventListener('close', () => {
   draw();
   textTarget = null;
   status('文字を追加しました。ドラッグで位置を調整できます。');
+  warnUnsupported(text);
 });
+// The font file is loaded only when it is needed: for saving, or for checking typed characters.
+const loadFontBytes = () =>
+  (fontPromise ||= fetch(new URL('./fonts/FileNoteSans-Regular.ttf', import.meta.url)).then((r) => r.arrayBuffer()));
+let fontCoverage = null;
+// Characters the bundled font lacks would come out as blanks or boxes in the saved PDF: say so right away.
+async function warnUnsupported(text) {
+  try {
+    fontCoverage ||= loadFontBytes().then((bytes) => globalThis.fontkit.create(new Uint8Array(bytes)));
+    const font = await fontCoverage;
+    const missing = [...new Set(text)].filter((ch) => !/[\s\p{Cc}]/u.test(ch) && !font.hasGlyphForCodePoint(ch.codePointAt(0)));
+    if (missing.length) status(`次の文字はPDFで表示できません（空白や□になります）：${missing.slice(0, 10).join(' ')}`, true);
+  } catch {
+    // Only a hint: saving works the same without it.
+  }
+}
 function setInputValue(input, value) {
   if (input.type === 'checkbox') input.checked = value === 'true';
   else if (input.type === 'radio') input.checked = value === input.dataset.buttonValue;
@@ -737,6 +753,7 @@ function drawFormFields(viewport, view) {
         if (input.value !== before) {
           record();
           before = input.value;
+          warnUnsupported(input.value);
         }
       } else {
         formValues[key] = read();
@@ -1483,8 +1500,7 @@ $('save').onclick = async () => {
   const saveName = filename.replace(/\.pdf$/i, '') + '_edited.pdf';
   setBusy(true, 'PDFを作成しています…');
   try {
-    if (annotations.some((list) => list.some((o) => o.type === 'text')) || Object.keys(changedForms()).length)
-      fontPromise ||= fetch(new URL('./fonts/NotoSansJP-Regular.ttf', import.meta.url)).then((r) => r.arrayBuffer());
+    if (annotations.some((list) => list.some((o) => o.type === 'text')) || Object.keys(changedForms()).length) loadFontBytes();
     // Restored projects may contain notes on pages that have not been displayed.
     for (let i = 0; i < annotations.length; i++)
       if (annotations[i].length && !dimensions[i]) {

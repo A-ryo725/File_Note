@@ -103,7 +103,7 @@ export async function buildPdf({ sources, pages, annotations, dimensions, fontBy
   }
   // Materialize pending embedded font/image resources before cross-document copying.
   await layer.flush();
-  // The whole font is 1.4 MB even compressed; the glyphs in use need a few KB.
+  // The whole font is 8 MB even compressed; the glyphs in use need a few KB.
   if (font) pruneEmbeddedFont(layer, font, fontBytes, usedGlyphs);
   const embeddedPages = await output.embedPages(layers.map((item) => item.page));
   for (const [layerIndex, { index }] of layers.entries()) {

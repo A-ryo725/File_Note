@@ -61,7 +61,7 @@ export async function assemblePdf({ sources, pages, formValues = {}, fontBytes }
           console.warn(`フォーム項目「${field.getName()}」を更新できませんでした：`, e);
         }
       }
-      // Keep only the glyphs the new appearances draw: the whole font is 1.4 MB.
+      // Keep only the glyphs the new appearances draw: the whole font is 8 MB compressed.
       await doc.flush();
       pruneEmbeddedFont(doc, font, fontBytes, usedGlyphs);
     }

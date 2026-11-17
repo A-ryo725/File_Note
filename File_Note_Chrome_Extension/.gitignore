@@ -30,3 +30,6 @@ desktop.ini
 
 # Claude Code のローカル設定
 .claude/settings.local.json
+
+# フォント作成用にダウンロードした元フォント（tools/build-font.py）
+tools/.font-cache/

@@ -274,7 +274,7 @@ test('text notes embed only the glyphs in use, not the whole font', async ({ pag
   await page.click('#textConfirm');
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#save')]);
   const bytes = await readFile(await download.path());
-  expect(bytes.length).toBeLessThan(150_000); // the whole font would add 1.4 MB
+  expect(bytes.length).toBeLessThan(150_000); // the whole font would add 8 MB
 
   // Every character is still extractable and drawn.
   const result = await page.evaluate(async (b64) => {
@@ -311,7 +311,7 @@ test('form text keeps the plain glyph of every character, for viewers that redra
     async ({ b64, value }) => {
       const { PDFDocument, PDFName, PDFDict, PDFRawStream, decodePDFRawStream } = PDFLib;
       const doc = await PDFDocument.load(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
-      const full = fontkit.create(new Uint8Array(await (await fetch('fonts/NotoSansJP-Regular.ttf')).arrayBuffer()));
+      const full = fontkit.create(new Uint8Array(await (await fetch('fonts/FileNoteSans-Regular.ttf')).arrayBuffer()));
       const failures = [];
       for (const [, object] of doc.context.enumerateIndirectObjects()) {
         const file = object instanceof PDFDict && object.lookup(PDFName.of('FontFile2'));
