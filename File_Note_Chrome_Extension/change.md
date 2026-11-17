@@ -2,6 +2,14 @@
 
 ## 未リリース
 
+- Web版（インストール不要）を Cloudflare Pages で公開できるようにした
+  - 拡張機能と同じ `file-note/` を使うため、機能は共通。拡張機能版もそのまま使える
+  - Web版では「このPDFを編集」（表示中のPDFを開く）とURLからの読み込みは使えない
+  - Cloudflare の設定ファイルは「_」で始まり拡張機能に置けないため、`web/` に置いて公開時に組み合わせる
+  - 新規：`web/build.sh`、`web/_headers`、`web/_redirects`、`web/README.md`
+  - 確認：公開用フォルダーをセキュリティ設定付きで配信し、Playwright 28件合格（ポップアップのテスト1件はWeb版に含めないため対象外）、トップページでエラーなし
+  - 未確認：Cloudflare 上での実際の公開
+
 - PDF以外のファイル形式の閲覧機能を削除し、PDF編集専用に変更
   - 開けるのは PDF と編集データ（.filenote）のみ
   - 拡張機能名を「File Note — ChromeのPDFに書き込み」に変更
