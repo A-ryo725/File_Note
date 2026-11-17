@@ -1,4 +1,5 @@
 import { radioOptionOf, dropdownOptionOf } from './helpers.js';
+import { trackGlyphs, pruneEmbeddedFont } from './font-prune.js';
 // Copy pages while retaining the AcroForm tree; copyPages alone loses that tree.
 export async function assemblePdf({ sources, pages, formValues = {}, fontBytes }) {
   const {
@@ -34,6 +35,7 @@ export async function assemblePdf({ sources, pages, formValues = {}, fontBytes }
     if (values.length) {
       doc.registerFontkit(globalThis.fontkit);
       const font = await doc.embedFont(fontBytes, { subset: false });
+      const usedGlyphs = trackGlyphs(font);
       for (const [key, value] of values) {
         const field = form.getField(key.slice(key.indexOf(':') + 1));
         if (field.isReadOnly()) continue;
@@ -59,6 +61,9 @@ export async function assemblePdf({ sources, pages, formValues = {}, fontBytes }
           console.warn(`フォーム項目「${field.getName()}」を更新できませんでした：`, e);
         }
       }
+      // Keep only the glyphs the new appearances draw: the whole font is 1.4 MB.
+      await doc.flush();
+      pruneEmbeddedFont(doc, font, fontBytes, usedGlyphs);
     }
     if (sourceIndex === 0) {
       for (const field of form.acroForm.getFields()) {

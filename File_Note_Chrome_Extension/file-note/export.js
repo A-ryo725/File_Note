@@ -3,17 +3,20 @@
 import { assemblePdf } from './pages.js';
 import { rectOf, arrowTips, simplify } from './helpers.js';
 import { compressImages, recompressDataUrl } from './compress.js';
+import { trackGlyphs, pruneEmbeddedFont } from './font-prune.js';
 export async function buildPdf({ sources, pages, annotations, dimensions, fontBytes, formValues = {}, compress = false }) {
   const { PDFDocument, rgb, degrees, LineCapStyle, LineJoinStyle, pushGraphicsState, popGraphicsState, setLineJoin } = globalThis.PDFLib;
   const output = await assemblePdf({ sources, pages, formValues, fontBytes });
   if (compress) await compressImages(output);
   const layer = await PDFDocument.create();
   const hasText = annotations.some((list) => list?.some((o) => o.type === 'text'));
-  let font;
+  let font, usedGlyphs;
   if (hasText) {
     layer.registerFontkit(globalThis.fontkit);
-    // Full embedding keeps Noto Sans JP glyphs reliable: pdf-lib subsetting dropped glyphs in form fields.
+    // pdf-lib's subsetting drops Noto Sans JP glyphs. The font is embedded whole here
+    // and reduced to the glyphs in use after the drawing below.
     font = await layer.embedFont(fontBytes, { subset: false });
+    usedGlyphs = trackGlyphs(font);
   }
   const color = (hex) => rgb(parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255);
   const layers = [];
@@ -100,6 +103,8 @@ export async function buildPdf({ sources, pages, annotations, dimensions, fontBy
   }
   // Materialize pending embedded font/image resources before cross-document copying.
   await layer.flush();
+  // The whole font is 1.4 MB even compressed; the glyphs in use need a few KB.
+  if (font) pruneEmbeddedFont(layer, font, fontBytes, usedGlyphs);
   const embeddedPages = await output.embedPages(layers.map((item) => item.page));
   for (const [layerIndex, { index }] of layers.entries()) {
     const embedded = embeddedPages[layerIndex];

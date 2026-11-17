@@ -127,7 +127,7 @@ test('annotations, forms, page tools and PDF export', async ({ page }) => {
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#save')]);
   const bytes = await readFile(await download.path());
   expect(download.suggestedFilename()).toBe('sample_edited.pdf');
-  expect(bytes.length).toBeLessThan(3_000_000); // full font is embedded once for notes and once for form fields at most
+  expect(bytes.length).toBeLessThan(400_000); // the fonts for notes and form fields keep only the glyphs in use
   expect(bytes.includes(Buffer.from('/DCTDecode'))).toBe(true);
 
   const out = await PDFLib.PDFDocument.load(bytes);
@@ -239,4 +239,74 @@ test('saved PDFs list every object number, so strict readers (MuPDF) accept them
   const index = dict.match(/\/Index\s*\[([^\]]*)\]/)?.[1].trim().split(/\s+/).map(Number) ?? [0, size];
   expect(index).toEqual([0, size]);
   expect((await PDFLib.PDFDocument.load(bytes)).getPageCount()).toBe(2);
+});
+
+test('text notes embed only the glyphs in use, not the whole font', async ({ page }) => {
+  await openPdf(page, await makePdf({ withForm: false }));
+  const text = '課題6 main()関数 あいう ABC 123、。';
+  await page.click('[data-tool=text]');
+  const box = await page.locator('#overlay').boundingBox();
+  await page.mouse.click(box.x + box.width * 0.2, box.y + box.height * 0.3);
+  await page.fill('#textValue', text);
+  await page.click('#textConfirm');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#save')]);
+  const bytes = await readFile(await download.path());
+  expect(bytes.length).toBeLessThan(150_000); // the whole font would add 1.4 MB
+
+  // Every character is still extractable and drawn.
+  const result = await page.evaluate(async (b64) => {
+    const pdfjs = await import('/vendor/pdf.min.mjs');
+    pdfjs.GlobalWorkerOptions.workerSrc = '/vendor/pdf.worker.min.mjs';
+    const doc = await pdfjs.getDocument({ data: Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), cMapUrl: '/vendor/cmaps/', cMapPacked: true })
+      .promise;
+    const p = await doc.getPage(1);
+    const viewport = p.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await p.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    const { data } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+    let dark = 0;
+    for (let i = 0; i < data.length; i += 4) if (data[i] < 100 && data[i + 1] < 100 && data[i + 2] < 100) dark++;
+    return { text: (await p.getTextContent()).items.map((i) => i.str).join(''), dark };
+  }, bytes.toString('base64'));
+  expect(result.text).toBe(text);
+  expect(result.dark).toBeGreaterThan(2500);
+});
+
+test('form text keeps the plain glyph of every character, for viewers that redraw fields', async ({ page }) => {
+  await openPdf(page, await makePdf());
+  // Between Latin letters, digits are drawn with alternate glyphs. A viewer that
+  // redraws the field (NeedAppearances) uses the plain ones instead.
+  const value = 'uint8_t x2 = 9;';
+  await page.locator('input[data-field-name="name"]').fill(value);
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#save')]);
+  const bytes = await readFile(await download.path());
+  expect(bytes.length).toBeLessThan(200_000);
+
+  const missing = await page.evaluate(
+    async ({ b64, value }) => {
+      const { PDFDocument, PDFName, PDFDict, PDFRawStream, decodePDFRawStream } = PDFLib;
+      const doc = await PDFDocument.load(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
+      const full = fontkit.create(new Uint8Array(await (await fetch('fonts/NotoSansJP-Regular.ttf')).arrayBuffer()));
+      const failures = [];
+      for (const [, object] of doc.context.enumerateIndirectObjects()) {
+        const file = object instanceof PDFDict && object.lookup(PDFName.of('FontFile2'));
+        if (!(file instanceof PDFRawStream)) continue;
+        const font = decodePDFRawStream(file).decode();
+        const view = new DataView(font.buffer, font.byteOffset, font.byteLength);
+        let loca;
+        for (let i = 0; i < view.getUint16(4); i++)
+          if (String.fromCharCode(...font.subarray(12 + i * 16, 16 + i * 16)) === 'loca') loca = view.getUint32(12 + i * 16 + 8);
+        for (const ch of value.replaceAll(' ', '')) {
+          const id = full.glyphForCodePoint(ch.codePointAt(0)).id;
+          if (view.getUint32(loca + id * 4 + 4) === view.getUint32(loca + id * 4)) failures.push(ch);
+        }
+        failures.push('checked');
+      }
+      return failures;
+    },
+    { b64: bytes.toString('base64'), value },
+  );
+  expect(missing).toEqual(['checked']);
 });
