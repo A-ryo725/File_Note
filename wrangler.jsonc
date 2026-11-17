@@ -1,0 +1,9 @@
+// Cloudflare（Workers）で Web 版を公開するための設定。
+// 公開するフォルダーは File_Note_Chrome_Extension/web/build.sh が作る。
+{
+  "name": "file-note",
+  "compatibility_date": "2025-10-01",
+  "assets": {
+    "directory": "./File_Note_Chrome_Extension/dist"
+  }
+}
