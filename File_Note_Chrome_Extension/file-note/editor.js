@@ -3,6 +3,7 @@ import { buildPdf } from './export.js';
 import { consumePdf } from './transfer.js';
 import { PageSidebar } from './sidebar.js';
 import { pickPhoto, pickPdf } from './pickers.js';
+import { sizeIn } from './field-layout.js';
 import { cloneNotes, rectOf, arrowTips, simplify, fieldKind, radioStateOf, dropdownValueOf } from './helpers.js';
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdf.worker.min.mjs', import.meta.url).href;
 const $ = (id) => document.getElementById(id);
@@ -653,7 +654,10 @@ function setInputValue(input, value) {
   else input.value = value;
 }
 function syncFormValues() {
-  for (const input of $('workspace').querySelectorAll('[data-field-key]')) setInputValue(input, formValues[input.dataset.fieldKey] ?? '');
+  for (const input of $('workspace').querySelectorAll('[data-field-key]')) {
+    setInputValue(input, formValues[input.dataset.fieldKey] ?? '');
+    fitAutoSize(input);
+  }
 }
 function drawFormFields(viewport, view) {
   const formLayer = view.forms;
@@ -697,7 +701,9 @@ function drawFormFields(viewport, view) {
     }
     if (kind === 'text' && field.maxLen > 0) input.maxLength = field.maxLen;
     if (field.required && kind === 'text') input.required = true;
-    const fontSize = field.defaultAppearanceData?.fontSize || Math.min(18, (h / scale) * 0.65);
+    const auto = kind === 'text' && !field.comb && sources[pageOrder[view.index].source].autoSize?.has(field.fieldName);
+    // An automatic size starts at 12 pt for several lines, as in the saved PDF, and shrinks to fit (fitAutoSize).
+    const fontSize = auto && field.multiLine ? 12 : field.defaultAppearanceData?.fontSize || Math.min(18, (h / scale) * 0.65);
     const fontColor = field.defaultAppearanceData?.fontColor || [0, 0, 0];
     Object.assign(input.style, {
       left: `${left + (width - w) / 2}px`,
@@ -746,7 +752,10 @@ function drawFormFields(viewport, view) {
       formValues[key] = read();
       dirty = true;
       for (const peer of $('workspace').querySelectorAll('[data-field-key]'))
-        if (peer !== input && peer.dataset.fieldKey === key) setInputValue(peer, formValues[key]);
+        if (peer !== input && peer.dataset.fieldKey === key) {
+          setInputValue(peer, formValues[key]);
+          fitAutoSize(peer);
+        }
     });
     input.addEventListener('change', () => {
       if (kind === 'text') {
@@ -769,6 +778,26 @@ function drawFormFields(viewport, view) {
       }
     });
     formLayer.append(input);
+    if (auto) {
+      input.dataset.autoSize = String(Math.max(1, fontSize * scale));
+      input.dataset.minSize = String(4 * scale);
+      fitAutoSize(input);
+      input.addEventListener('input', () => fitAutoSize(input));
+    }
+  }
+}
+// The text of an automatic-size field gets smaller until it fits, like the saved PDF.
+function fitAutoSize(input) {
+  if (!input.dataset.autoSize) return;
+  const min = Number(input.dataset.minSize),
+    step = min / 8;
+  let size = Number(input.dataset.autoSize);
+  input.style.fontSize = `${size}px`;
+  const overflows = () =>
+    input.tagName === 'TEXTAREA' ? input.scrollHeight > input.clientHeight + 1 : input.scrollWidth > input.clientWidth + 1;
+  while (size > min && overflows()) {
+    size = Math.max(min, size - step);
+    input.style.fontSize = `${size}px`;
   }
 }
 function activatePage(index) {
@@ -995,6 +1024,9 @@ async function prepareSource(bytes, name) {
   if (bytes.byteLength > 200 * 1024 * 1024) throw new Error('200MB以下のPDFを選んでください。');
   const preview = await PDFLib.PDFDocument.load(bytes.slice());
   const nextInitial = {};
+  // Text fields whose font size is automatic (0 in /DA): pdf.js reports a size from the
+  // field height instead, which is far too large for a multi-line field.
+  const autoSize = new Set();
   let cleared = false,
     previewFont = null;
   // Blank editable text appearances only in the preview. Keep the original PDF
@@ -1006,6 +1038,8 @@ async function prepareSource(bytes, name) {
     try {
       if (field instanceof PDFLib.PDFTextField) {
         value = field.getText() || '';
+        const da = field.acroField.getWidgets()[0]?.getDefaultAppearance() ?? field.acroField.getDefaultAppearance();
+        if (!(sizeIn(da) > 0)) autoSize.add(name);
         previewFont ||= await preview.embedFont(PDFLib.StandardFonts.Helvetica);
         field.setText('');
         field.updateAppearances(previewFont);
@@ -1028,7 +1062,7 @@ async function prepareSource(bytes, name) {
     standardFontDataUrl: new URL('./vendor/standard_fonts/', import.meta.url).href,
     wasmUrl: new URL('./vendor/wasm/', import.meta.url).href,
   }).promise;
-  return { bytes: bytes.slice(), name, preview: next, initial: nextInitial };
+  return { bytes: bytes.slice(), name, preview: next, initial: nextInitial, autoSize };
 }
 async function loadPdf(bytes, name, restored = null, restoredForms = {}) {
   const values = Object.fromEntries(Object.entries(restoredForms).map(([key, value]) => [`0:${key}`, value]));

@@ -1,5 +1,6 @@
 import { radioOptionOf, dropdownOptionOf } from './helpers.js';
 import { trackGlyphs, pruneEmbeddedFont } from './font-prune.js';
+import { textFieldAppearance } from './field-layout.js';
 // Copy pages while retaining the AcroForm tree; copyPages alone loses that tree.
 export async function assemblePdf({ sources, pages, formValues = {}, fontBytes }) {
   const {
@@ -42,7 +43,7 @@ export async function assemblePdf({ sources, pages, formValues = {}, fontBytes }
         try {
           if (field instanceof PDFTextField) {
             field.setText(value);
-            field.updateAppearances(font);
+            field.updateAppearances(font, textFieldAppearance);
           } else if (field instanceof PDFCheckBox) {
             if (value === 'true') field.check();
             else field.uncheck();

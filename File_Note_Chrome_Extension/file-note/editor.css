@@ -356,6 +356,8 @@ dialog form > div {
   background: #ffffffeb;
 }
 .form-layer textarea.pdf-text-field {
+  /* The line spacing pdf-lib uses in the saved PDF (font height × 1.2). */
+  line-height: 1.74;
   white-space: pre-wrap;
   overflow: auto;
 }
