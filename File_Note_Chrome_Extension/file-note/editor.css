@@ -463,6 +463,28 @@ aside.select-mode {
   color: #66768e;
   font-size: 11px;
 }
+/* The page list can be folded into a narrow strip, to give the page more room. */
+#railToggle {
+  padding: 2px 9px;
+  font-size: 16px;
+  line-height: 1.2;
+}
+.rail-header strong {
+  margin-right: auto;
+}
+aside.select-mode.collapsed {
+  width: 46px;
+}
+aside.collapsed .rail-header {
+  padding: 12px 6px;
+  justify-content: center;
+}
+aside.collapsed .rail-header strong,
+aside.collapsed #railAppend,
+aside.collapsed .rail-actions,
+aside.collapsed #pageThumbs {
+  display: none;
+}
 #pageThumbs {
   flex: 1;
   min-height: 0;

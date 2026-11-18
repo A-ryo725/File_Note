@@ -1729,6 +1729,30 @@ $('railAppend').onclick = () => {
   if (!busy && pdf) $('appendInput').click();
 };
 $('railRotate').onclick = rotateCurrentPage;
+// Folding the page list is remembered, like the compress choice.
+function setRailOpen(open) {
+  $('sidebar').classList.toggle('collapsed', !open);
+  $('railToggle').textContent = open ? '‹' : '›';
+  $('railToggle').title = open ? 'ページ一覧を閉じる' : 'ページ一覧を開く';
+  $('railToggle').setAttribute('aria-label', $('railToggle').title);
+  $('railToggle').setAttribute('aria-expanded', String(open));
+  if (open) pageSidebar.sync();
+}
+$('railToggle').onclick = () => {
+  const open = $('sidebar').classList.contains('collapsed');
+  setRailOpen(open);
+  try {
+    if (open) localStorage.removeItem('file-note-rail-closed');
+    else localStorage.setItem('file-note-rail-closed', '1');
+  } catch {
+    // Not remembered.
+  }
+};
+try {
+  setRailOpen(localStorage.getItem('file-note-rail-closed') !== '1');
+} catch {
+  setRailOpen(true);
+}
 $('railBlank').onclick = insertBlankPage;
 setTool('select');
 setBusy(false);

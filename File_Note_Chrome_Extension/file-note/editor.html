@@ -38,7 +38,10 @@
     <main>
       <aside id="sidebar">
         <section id="pageSidebar">
-          <div class="rail-header"><strong>ページ</strong><button id="railAppend" disabled>PDFを追加</button></div>
+          <div class="rail-header">
+            <button id="railToggle" aria-expanded="true" aria-controls="pageThumbs" title="ページ一覧を閉じる">‹</button
+            ><strong>ページ</strong><button id="railAppend" disabled>PDFを追加</button>
+          </div>
           <div class="rail-actions">
             <button id="railRotate" disabled>↻ 右に回転</button><button id="railBlank" disabled>白紙を挿入</button>
           </div>
@@ -179,6 +182,10 @@
           <h3>ページの操作</h3>
           <p>「選択・移動」のとき、左側にページの一覧が出ます。</p>
           <table class="help-table">
+            <tr>
+              <th>開く・閉じる</th>
+              <td>一覧の左上の「‹」で閉じると、ページを広く表示できます。「›」でまた開きます</td>
+            </tr>
             <tr>
               <th>並べ替え</th>
               <td>ページの小さな画像をドラッグ</td>
